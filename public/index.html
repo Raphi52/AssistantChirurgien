@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.svg">
+<title>Mon suivi chirurgie</title>
+<style>
+  :root { --c:#0f766e; --bg:#f6f8f8; --t:#1f2933; --m:#6b7780; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:16px/1.45 system-ui,-apple-system,sans-serif; background:var(--bg); color:var(--t); height:100dvh; display:flex; flex-direction:column; }
+  header { background:var(--c); color:#fff; padding:14px 16px calc(14px); padding-top:max(14px, env(safe-area-inset-top)); }
+  header b { font-size:17px; } header small { display:block; opacity:.85; font-size:12px; }
+  #log { flex:1; overflow-y:auto; padding:14px; display:flex; flex-direction:column; gap:10px; }
+  .m { max-width:86%; padding:10px 13px; border-radius:16px; white-space:pre-wrap; }
+  .u { align-self:flex-end; background:var(--c); color:#fff; border-bottom-right-radius:4px; }
+  .a { align-self:flex-start; background:#fff; border:1px solid #e3e8ea; border-bottom-left-radius:4px; }
+  .alerte { background:#fde8e8; border-color:#f5a3a3; color:#7f1d1d; font-weight:600; }
+  .transfert { background:#fff7e6; border-color:#f3d08a; }
+  .rappel { display:block; width:auto; height:auto; border-radius:14px; padding:7px 12px; margin-top:8px; font-size:14px; }
+  .src { display:block; margin-top:6px; font-size:12px; color:var(--m); }
+  .warn { font-size:12px; color:var(--m); text-align:center; padding:0 16px 6px; }
+  form { display:flex; gap:8px; padding:10px; padding-bottom:max(10px, env(safe-area-inset-bottom)); background:#fff; border-top:1px solid #e3e8ea; }
+  textarea { flex:1; resize:none; border:1px solid #cfd8dc; border-radius:20px; padding:10px 14px; font:inherit; height:44px; overflow-y:auto; scrollbar-width:none; }
+  textarea::-webkit-scrollbar { display:none; }
+  #mic { display:flex; align-items:center; justify-content:center; }
+  button { border:0; border-radius:50%; width:44px; height:44px; background:var(--c); color:#fff; font-size:19px; flex:none; }
+  #mic.on { background:#dc2626; animation:p 1s infinite; }
+  @keyframes p { 50% { opacity:.6 } }
+  #gate { position:fixed; inset:0; background:var(--bg); display:flex; flex-direction:column; justify-content:center; gap:12px; padding:30px; }
+  #gate[hidden] { display:none; }
+  #gate input { padding:12px; font:inherit; border:1px solid #cfd8dc; border-radius:10px; }
+  #gate button { width:auto; border-radius:10px; }
+  #gate .brand { margin-bottom:6px; }
+  #gate .kicker { display:inline-block; background:#e6f2f1; color:var(--c); font:600 10px monospace; letter-spacing:2px; border-radius:12px; padding:3px 9px; }
+  #gate h1 { margin:6px 0 0; color:var(--t); font-size:30px; font-weight:800; line-height:1.1; }
+  #gate .brand i { display:block; height:5px; width:120px; border-radius:3px; background:linear-gradient(90deg,var(--c),rgba(15,118,110,0)); margin-top:6px; }
+  #gate .brand small { display:block; color:var(--m); font-size:12px; margin-top:4px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .tabs { display:flex; background:#fff; border-bottom:1px solid #e3e8ea; }
+  .tabs button { flex:1; width:auto; height:44px; border-radius:0; background:none; color:var(--m); font-size:15px; border-bottom:3px solid transparent; }
+  .tabs button.on { color:var(--c); border-bottom-color:var(--c); font-weight:600; }
+  #v-chat { flex:1; display:flex; flex-direction:column; min-height:0; }
+  #v-chat[hidden], #v-prep[hidden] { display:none; }
+  #v-prep { flex:1; overflow-y:auto; padding:12px 14px 30px; }
+  #v-prep button { width:auto; height:auto; border-radius:10px; font-size:14px; }
+  .suivi { background:#fff; border:1px solid #e3e8ea; border-radius:14px; padding:12px 14px; margin-bottom:12px; }
+  .kick { font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--m); margin:8px 0 4px; }
+  .big { font-size:18px; } .big b { color:var(--c); }
+  progress { width:100%; height:10px; accent-color:var(--c); margin:6px 0; }
+  #v-prep .err { color:#b42318; font-size:13px; margin:4px 0 0; }
+  .jalons { display:flex; align-items:center; }
+  .jl { width:28px; height:28px; flex:none; border-radius:50%; background:#eef1f3; color:var(--m); font-size:13px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+  .jl.ok { background:var(--c); color:#fff; } .jl.now { background:#fff; border:2px solid var(--c); color:var(--c); }
+  .tr { flex:1; height:4px; background:#eef1f3; } .tr.ok { background:var(--c); }
+  .resume { text-align:center; font-size:13px; color:var(--m); margin-top:8px; } .resume b { color:var(--t); }
+  .maint { border:2px solid var(--c); border-radius:16px; padding:6px 0 0; margin-bottom:12px; background:#fff; }
+  .maint .kick { padding:0 14px; color:var(--c); margin:2px 0 0; } .maint .step { border:0; margin:0; }
+  .faits > summary { color:var(--m); font-size:14px; padding:8px 4px; cursor:pointer; list-style:none; }
+  .recap { list-style:none; padding:0; margin:6px 0 0; }
+  .recap li { display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-top:1px solid #f0f3f4; font-size:14px; cursor:pointer; }
+  .chip { font-size:12px; border-radius:10px; padding:2px 8px; white-space:nowrap; align-self:center; }
+  .chip.todo { background:#eef1f3; color:var(--m); } .chip.wip { background:#fff4d6; color:#8a5a00; } .chip.done { background:#dcf3ec; color:#0b5f4a; }
+  .step { background:#fff; border:1px solid #e3e8ea; border-radius:14px; margin-bottom:10px; }
+  .step summary { display:flex; justify-content:space-between; gap:8px; padding:12px 14px; font-weight:600; cursor:pointer; list-style:none; }
+  .step .body { padding:0 14px 14px; }
+  .fld { display:block; margin:10px 0; font-size:14px; }
+  .fld input, .fld select { display:block; width:100%; margin-top:5px; padding:9px 10px; font:inherit; border:1px solid #cfd8dc; border-radius:9px; }
+  .seg { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  #v-prep .seg button { background:#eef1f3; color:var(--t); padding:8px 12px; }
+  #v-prep .seg button.on { background:var(--c); color:#fff; }
+  .cb { display:flex; gap:9px; align-items:flex-start; padding:7px 0; font-size:14px; }
+  .cb input { width:20px; height:20px; margin:0; flex:none; accent-color:var(--c); }
+  .sub { font-size:12px; color:var(--m); margin:-4px 0 4px 29px; }
+  .sigb { padding:8px 0; border-bottom:1px solid #eef1f3; font-size:14px; }
+  /* hauteur auto : l'affichage garde les proportions du cadre (600×200). Une hauteur fixe l'étirait plus en largeur qu'en hauteur, et le trait rond devenait une plume (vertical épais, horizontal fin). */
+  .sigpad { display:block; width:100%; height:auto; aspect-ratio:3/1; border:1.5px dashed #9aa7b1; border-radius:10px; background:#fff; touch-action:none; margin:6px 0 2px; }
+  .sigimg { display:block; width:100%; max-width:300px; height:auto; border:1px solid #eef1f3; border-radius:8px; background:#fff; margin:4px 0; }
+  .prov { font-size:11px; color:#92400e; background:#fef3c7; border-radius:6px; padding:1px 6px; white-space:nowrap; }
+  .resume { margin:6px 0; padding-left:18px; font-size:14px; } .resume li { margin:3px 0; }
+  .note { font-size:13px; color:var(--m); }
+  #v-prep .btn { display:inline-block; background:var(--c); color:#fff; padding:10px 14px; text-decoration:none; margin:6px 0; font-size:14px; border-radius:10px; }
+  #v-prep .lnk { background:none; color:#b42318; text-decoration:underline; font-size:13px; padding:8px 0; }
+  hr { border:0; border-top:1px solid #eef1f3; margin:10px 0; }
+  #print-area { display:none; }
+  @media print {
+    body > *:not(#v-prep) { display:none !important; }
+    #v-prep { display:block !important; overflow:visible; } #v-prep > *:not(#print-area) { display:none !important; }
+    #print-area { display:block !important; font-size:12px; }
+    #print-area table { width:100%; border-collapse:collapse; } #print-area td { border:1px solid #999; padding:4px 6px; vertical-align:top; }
+  }
+  .chips span { background:#e6f2f1; color:var(--c); border-radius:14px; padding:5px 10px; font-size:13px; cursor:pointer; }
+</style>
+</head>
+<body>
+<header><b>Mon suivi chirurgie</b><small>Informations validées par votre équipe · Urgence : 15</small></header>
+<nav class="tabs">
+  <button type="button" data-tab="chat" class="on">💬 Questions</button>
+  <button type="button" data-tab="prep">📋 Préparation</button>
+</nav>
+<div id="v-chat">
+<div id="log"></div>
+<div class="warn">Information générale, pas un diagnostic. En cas de doute ou de symptôme, contactez le service ou le 15.</div>
+<form id="f">
+  <button type="button" id="mic" title="Parler" aria-label="Parler"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" focusable="false"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></g></svg></button>
+  <textarea id="q" placeholder="Posez votre question…" rows="1"></textarea>
+  <button id="send" title="Envoyer">➤</button>
+</form>
+</div>
+<div id="v-prep" hidden></div>
+<div id="gate" hidden>
+  <div class="brand"><span class="kicker">CHIRURGIE DIGESTIVE</span><h1>Mon suivi</h1><i></i><small>Informations validées par votre équipe</small></div>
+  <b>Code d'accès</b>
+  <small>Donné par le secrétariat du service.</small>
+  <input id="code" inputmode="text" autocomplete="off">
+  <small>Votre nom et prénom (pour que le secrétariat sache qui rappeler) :</small>
+  <input id="prenom" placeholder="Prénom" autocomplete="given-name">
+  <input id="nom" placeholder="Nom" autocomplete="family-name">
+  <button id="go">Entrer</button>
+</div>
+<script>
+const $ = s => document.querySelector(s);
+const log = $('#log');
+let code = localStorage.getItem('code');
+let voiceReply = false;
+
+function add(cls, text, src) {
+  const d = document.createElement('div');
+  d.className = 'm ' + cls; d.textContent = text;
+  if (src) { const s = document.createElement('span'); s.className = 'src'; s.textContent = src; d.appendChild(s); }
+  log.appendChild(d); log.scrollTop = log.scrollHeight; return d;
+}
+function speak(t) {
+  if (!('speechSynthesis' in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(t); u.lang = 'fr-FR'; u.rate = 1;
+  speechSynthesis.speak(u);
+}
+const histo = []; // échanges de CETTE session, jamais enregistrés
+async function ask(q) {
+  add('u', q);
+  const w = add('a', '…');
+  try {
+    const r = await fetch('/api/ask', { method:'POST', headers:{ 'Content-Type':'application/json', 'Accept':'application/x-ndjson', 'x-access-code':code }, body: JSON.stringify({ question:q, historique: histo.slice(-8) }) });
+    if (r.status === 401) { localStorage.removeItem('code'); w.remove(); return gate(); }
+    // Réponse au fil de l'eau : chaque ligne {delta} remplace le texte affiché, la ligne {final} porte la réponse complète.
+    let j = null;
+    if ((r.headers.get('content-type') || '').includes('ndjson') && r.body) {
+      const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '';
+      for (;;) {
+        const { value, done } = await rd.read(); if (done) break;
+        buf += dec.decode(value, { stream:true }); let i;
+        while ((i = buf.indexOf('\n')) >= 0) {
+          const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
+          if (m.delta) { w.textContent = m.delta; log.scrollTop = log.scrollHeight; }
+          if (m.final) j = m.final;
+        }
+      }
+      if (!j) throw new Error('flux incomplet');
+    } else j = await r.json();
+    w.textContent = j.text;
+    histo.push({ role:'patient', texte:q }, { role:'assistant', texte:j.text });
+    if (j.type !== 'reponse') w.classList.add(j.type);
+    if (j.type === 'reponse') {
+      const s = document.createElement('span'); s.className = 'src';
+      s.textContent = j.portee === 'generale' ? 'Information générale : pas encore dans les fiches de votre équipe.'
+        : j.portee === 'hors_sujet' ? ''
+        : 'Source : ' + (j.fiches || []).map(f => f.titre).join(' · ') + ((j.fiches || []).every(f => f.valide) ? ' ✓ validé' : '');
+      if (s.textContent) w.appendChild(s);
+      const u = document.createElement('span'); u.className = 'src'; u.textContent = 'Urgence : appelez le 15.'; w.appendChild(u);
+    }
+    if (j.ref) {
+      if (j.type !== 'reponse') { const s = document.createElement('span'); s.className = 'src'; s.textContent = 'Référence : ' + j.ref; w.appendChild(s); }
+      const b = document.createElement('button'); b.type = 'button'; b.className = 'rappel'; b.textContent = j.type === 'reponse' ? '📞 Réponse pas satisfaisante ? Être rappelé(e) par le secrétariat' : '📞 Être rappelé(e)';
+      b.onclick = async () => {
+        const tel = prompt('Votre numéro de téléphone (il est transmis au secrétariat, jamais enregistré) :');
+        if (!tel) return;
+        b.disabled = true; b.textContent = 'Envoi…';
+        try {
+          const r = await fetch('/api/rappel', { method:'POST', headers:{ 'Content-Type':'application/json', 'x-access-code':code }, body: JSON.stringify({ ref:j.ref, telephone:tel, patient: localStorage.getItem('patient') || '' }) });
+          const k = await r.json();
+          b.textContent = r.ok && k.envoye ? '✓ Le secrétariat vous rappellera' : (r.ok ? "Envoi impossible : appelez le secrétariat" : 'Numéro invalide, réessayez');
+          if (!r.ok) b.disabled = false;
+        } catch { b.textContent = 'Connexion impossible'; b.disabled = false; }
+      };
+      w.appendChild(b);
+    }
+    if (voiceReply || j.type === 'alerte') speak(j.text);
+  } catch { w.textContent = "Connexion impossible. En cas d'urgence, appelez le 15."; w.classList.add('transfert'); }
+  voiceReply = false;
+}
+$('#f').onsubmit = e => { e.preventDefault(); const q = $('#q').value.trim(); if (q) { $('#q').value=''; ask(q); } };
+$('#q').onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('#f').requestSubmit(); } };
+
+// Voix : reconnaissance vocale du navigateur (Chrome Android / Safari iOS)
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) $('#mic').hidden = true; else {
+  const rec = new SR(); rec.lang = 'fr-FR'; rec.interimResults = true;
+  let finalText = '';
+  rec.onresult = e => { finalText = [...e.results].map(r => r[0].transcript).join(' '); $('#q').value = finalText; };
+  rec.onend = () => { $('#mic').classList.remove('on'); if (finalText.trim()) { voiceReply = true; $('#q').value=''; ask(finalText.trim()); } finalText=''; };
+  rec.onerror = e => { $('#mic').classList.remove('on'); if (e.error === 'not-allowed') add('a transfert', "Micro refusé : la voix demande une connexion https (voir README)."); };
+  $('#mic').onclick = () => { if ($('#mic').classList.contains('on')) return rec.stop(); speechSynthesis?.cancel(); $('#mic').classList.add('on'); rec.start(); };
+}
+
+function welcome() {
+  add('a', "Bonjour 👋 Je réponds aux questions fréquentes sur votre opération digestive (vésicule, hernie, appendicite, estomac, reflux, côlon), avant et après, avec les informations de votre équipe. Vous pouvez écrire ou appuyer sur le micro pour parler.");
+  const c = document.createElement('div'); c.className = 'chips';
+  ['Combien de temps avant je dois être à jeun ?', 'Peut-on vivre sans vésicule ?', 'Quand porter des charges après une hernie ?', 'Quand reprendre le travail ?'].forEach(t => {
+    const s = document.createElement('span'); s.textContent = t; s.onclick = () => ask(t); c.appendChild(s);
+  });
+  log.appendChild(c);
+}
+function gate() {
+  $('#gate').hidden = false;
+  $('#go').onclick = async () => {
+    const c = $('#code').value.trim(); const pr = $('#prenom').value.trim(), no = $('#nom').value.trim();
+    if (!c || !pr || !no) { $('#go').textContent = 'Code, prénom et nom obligatoires'; return; }
+    $('#go').textContent = 'Vérification…';
+    try {
+      const r = await fetch('/api/stats?code=' + encodeURIComponent(c));
+      if (r.status === 401) { $('#go').textContent = 'Code incorrect, réessayez'; return; }
+      code = c; localStorage.setItem('code', c); localStorage.setItem('patient', pr + ' ' + no); localStorage.setItem('prenom', pr); localStorage.setItem('nom', no); $('#gate').hidden = true;
+    } catch { $('#go').textContent = 'Connexion impossible, réessayez'; }
+  };
+}
+if (!code || !localStorage.getItem('patient')) gate();
+// Onglets Questions / Préparation
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('#v-chat').hidden = b.dataset.tab !== 'chat';
+  $('#v-prep').hidden = b.dataset.tab !== 'prep';
+  if (b.dataset.tab === 'prep') window.Prep && window.Prep.render();
+});
+welcome();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js');
+</script>
+<script src="/consentements.js"></script>
+<script src="/prep.js"></script>
+<!-- Accès admin discret (démo) : point quasi invisible en bas à droite -->
+<a href="/admin.html" aria-label="Administration" title="Admin" style="position:fixed;right:6px;bottom:6px;width:14px;height:14px;border-radius:50%;opacity:.12;background:currentColor;z-index:9999"></a>
+</body>
+</html>

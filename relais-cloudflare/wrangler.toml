@@ -1,0 +1,7 @@
+name = "assistant-chirurgien"
+pages_build_output_dir = "public"
+compatibility_date = "2026-05-01"
+
+[[kv_namespaces]]
+binding = "RELAIS"
+id = "1685168bcb284c9fb001882a209f3dfd"

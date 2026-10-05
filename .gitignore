@@ -1,0 +1,11 @@
+node_modules/
+relecture-fiches.csv
+bin/
+public-run*.log
+.ancien-bariatrique/
+admin-data/codes.json
+admin-data/dossiers-demo/
+# Secrets locaux : jeton du relais, code d'accès patient, cache du compte Cloudflare.
+admin-data/relais-token.txt
+admin-data/access-code.txt
+relais-cloudflare/.wrangler/

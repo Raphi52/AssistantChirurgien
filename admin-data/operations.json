@@ -1,0 +1,119 @@
+[
+  {
+    "id": "cholecystectomie-vesicule",
+    "nom": "Cholécystectomie (ablation de la vésicule)",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "appendicectomie",
+    "nom": "Appendicectomie",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "cure-de-hernie-inguinale",
+    "nom": "Cure de hernie inguinale",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "cure-de-hernie-ombilicale",
+    "nom": "Cure de hernie ombilicale",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "cure-d-eventration",
+    "nom": "Cure d’éventration",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "chirurgie-du-reflux-fundoplicature",
+    "nom": "Hernie hiatale / reflux (fundoplicature)",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "gastrectomie-estomac",
+    "nom": "Gastrectomie (estomac)",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "colectomie",
+    "nom": "Colectomie (côlon)",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "chirurgie-du-rectum",
+    "nom": "Chirurgie du rectum",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "fermeture-de-stomie",
+    "nom": "Fermeture de stomie (rétablissement de continuité)",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "hemorroidectomie",
+    "nom": "Hémorroïdectomie",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "fissure-ou-fistule-anale",
+    "nom": "Fissure ou fistule anale",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  },
+  {
+    "id": "kyste-pilonidal",
+    "nom": "Kyste pilonidal",
+    "cliniques": [
+      "parc",
+      "medipole"
+    ],
+    "anesthesie": true
+  }
+]
