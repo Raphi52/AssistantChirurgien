@@ -69,9 +69,9 @@ const ok = (c, m) => { console.log((c ? 'OK: ' : 'ÉCHEC: ') + m); if (!c) fails
 
   // Étape 4 : consentements
   await ouvrir('consent');
-  ok(await p.locator('[data-testid=sig-chir] .resume li').count() >= 3, 'consentement : points clés affichés');
-  await p.click('[data-testid=doc-chir] > summary');
-  ok((await p.innerText('[data-testid=doc-chir] .docpage')).includes('MODÈLE PROVISOIRE'), 'document complet lisible, marqué provisoire');
+  // Demande du 2026-10-05 : uniquement le document et la signature — ni introduction, ni points clés, ni lien à déplier.
+  ok(await p.locator('[data-step=consent] .body > p.note, [data-step=consent] .resume, [data-step=consent] .prov, [data-step=consent] .body summary').count() === 0, 'consentement : ni introduction, ni points clés, ni lien à déplier');
+  ok((await p.innerText('[data-testid=doc-chir] .docpage')).includes('MODÈLE PROVISOIRE'), 'document affiché d’emblée, marqué provisoire');
   await p.click('[data-act=sig-valider][data-k=chir]'); // sans tracé : refusé
   ok(await p.locator('canvas.sigpad[data-k=chir]').count() === 1, 'signature vide refusée');
   // Trait rond, pas en plume : le cadre affiché garde les proportions de son dessin interne (même échelle en largeur et en hauteur).

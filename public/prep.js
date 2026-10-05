@@ -148,14 +148,13 @@
 
     const cb = (path, label) => `<label class="cb"><input type="checkbox" data-path="${path}" ${g(path) ? 'checked' : ''}> ${esc(label)}</label>`;
 
-    // Étape 4 : résumé des points clés, document complet repliable, signature INSÉRÉE dans le document (modèles de public/consentements.js).
+    // Étape 4 : le document seul, affiché en entier, puis la signature, INSÉRÉE dans le document (modèles de public/consentements.js).
+    // Ni texte d'introduction, ni titre, ni points clés, ni lien à déplier (demande utilisateur, 2026-10-05).
     const sigBloc = (k, l, d) => {
       const sig = g('sig.' + k), M = (window.CONSENTEMENTS_MODELES || {})[k];
-      const tete = `<div><b>${sig || g('consent.' + k) ? '✓ ' : ''}${esc(M ? M.titre : l)}</b>${M ? ' <span class="prov">Modèle provisoire</span>' : ''}</div>`;
-      const corps = M ? `<ul class="resume">${M.resume.map(r => '<li>' + r + '</li>').join('')}</ul>
-        <details class="doc" data-testid="doc-${k}" ${sig ? 'open' : ''}><summary>${sig ? 'Voir le document signé' : 'Lire le document complet'}</summary>${docHtml(k)}</details>`
-        : `<div class="sub" style="margin-left:0">${esc(d)}</div>`;
-      return `<div class="sigb" data-testid="sig-${k}">${tete}${corps}` + (sig
+      const corps = M ? `<div class="doc" data-testid="doc-${k}">${docHtml(k)}</div>`
+        : `<div><b>${sig || g('consent.' + k) ? '✓ ' : ''}${esc(l)}</b></div><div class="sub" style="margin-left:0">${esc(d)}</div>`;
+      return `<div class="sigb" data-testid="sig-${k}">${corps}` + (sig
         ? `<div class="sub" style="margin-left:0">Signé le ${esc(sig.le)} <button type="button" class="lnk" data-act="sig-effacer" data-k="${k}">Effacer</button></div>${M ? `<button type="button" class="btn" data-act="sig-imprimer" data-k="${k}">🖨️ Enregistrer le document signé (PDF)</button>` : `<img class="sigimg" src="${sig.img}" alt="Signature">`}`
         : `<div class="kick">Votre signature</div><canvas class="sigpad" data-k="${k}" width="600" height="200"></canvas><button type="button" class="btn" data-act="sig-valider" data-k="${k}">Valider ma signature</button> <button type="button" class="lnk" data-act="sig-recommencer" data-k="${k}">Recommencer</button>`) + '</div>';
     };
@@ -189,7 +188,6 @@
         ${anesthForm}
         <button type="button" class="btn" data-act="print">🖨️ Imprimer / enregistrer en PDF</button>`)}
       ${def('consent', `
-        <p class="note">Lisez les points clés, ouvrez le document complet si besoin, puis signez avec le doigt : la signature est <b>placée dans le document</b>. ⚠️ Ces textes sont des <b>modèles provisoires</b>, en attendant les formulaires officiels du chirurgien, de l’anesthésiste et de la clinique. Cette signature est transmise au service (démonstration) : elle ne remplace pas la signature du document officiel.</p>
         ${consentsActifs().map(([k, l, d]) => sigBloc(k, l, d)).join('')}`)}
       ${def('jourj', JOURJ.map(([k, l]) => cb('jourj.' + k, l)).join(''))}
 `;
