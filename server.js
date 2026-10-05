@@ -113,7 +113,13 @@ function parseClaudeStream(onDelta) {
 
 function askClaude(prompt, onDelta) {
   return new Promise((resolve, reject) => {
-    const child = spawn('claude', ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages'], {
+    // Commande allégée (mesuré le 2026-10-05) : sans outils, MCP, réglages utilisateur ni prompt système de Claude Code,
+    // le 1er mot arrive en ~3 s au lieu de ~6,5 s (≈49 000 jetons d'instructions inutiles en moins par question).
+    // Sous Windows, shell:true recolle les arguments en une ligne : les vides et ceux avec espaces doivent être entre guillemets.
+    const arg = s => (process.platform === 'win32' ? `"${s}"` : s);
+    const child = spawn('claude', ['-p', '--output-format', 'stream-json', '--verbose', '--include-partial-messages',
+      '--tools', arg(''), '--strict-mcp-config', '--setting-sources', arg(''), '--no-session-persistence',
+      '--system-prompt', arg("Assistant d'information des patients. Suis exactement les regles du message.")], {
       cwd: path.join(__dirname, 'llm-sandbox'), shell: process.platform === 'win32',
       env: { ...process.env },
     });
