@@ -252,7 +252,8 @@ document.addEventListener('click', async e => {
 });
 $('#go').onclick = entrer;
 $('#code').onkeydown = e => { if (e.key === 'Enter') entrer(); };
-$('#out').onclick = () => { sessionStorage.removeItem('admin-code'); location.reload(); };
+// « Quitter » ramène à l'accueil patients (index.html) : avec l'accès direct sans code, recharger l'admin n'en sortait pas (choix utilisateur, 2026-10-05).
+$('#out').onclick = () => { sessionStorage.removeItem('admin-code'); location.href = '/'; };
 $('#gate').hidden = true; entrer(); // démo : accès direct sans code
 </script>
 </body>

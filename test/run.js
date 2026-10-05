@@ -44,6 +44,10 @@ async function t(name, fn) { try { await fn(); ok++; } catch (e) { ko++; console
     const adm = Object.keys(eval('(' + pub('admin.html').match(/const CLINIQUES_NOMS = (\{[^}]*\})/)[1] + ')'));
     assert.deepStrictEqual(prep, CLINIQUES); assert.deepStrictEqual(adm, CLINIQUES);
   });
+  await t('admin : « Quitter » ramène à l\'accueil patients', () => {
+    const h = fs.readFileSync(path.join(__dirname, '..', 'public', 'admin.html'), 'utf8');
+    assert.match(h.match(/\$\('#out'\)\.onclick = [^\n]*/)[0], /location\.href = '\/'/);
+  });
   await t('plus aucune fiche sur la chirurgie de l\'obésité', () => brain.docs.forEach(d => assert.ok(!/sleeve|bypass|bariatr/i.test(d.question + d.answer), d.id)));
 
   const URG = ["j'ai de la fièvre à 39", "j'ai une douleur dans la poitrine", "mon coeur bat très vite", "je vomis tout depuis hier",
