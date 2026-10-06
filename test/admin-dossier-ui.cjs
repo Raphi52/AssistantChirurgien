@@ -40,8 +40,17 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   const corps = JSON.parse((await envoi).postData());
   ok(corps.prenom === 'Jean Pierre' && corps.nom === 'De la Tour', 'connexion : prénom et nom envoyés séparément (' + corps.prenom + ' / ' + corps.nom + ')');
   await tel.waitForTimeout(500); await tel.close();
+  // Code admin obligatoire (2026-10-06) : l'écran du code s'affiche, un faux code est refusé sans boucle de rechargement.
+  let chargements = 0; p.on('load', () => chargements++);
   await p.goto(U + '/admin.html');
-  if (await p.isVisible('#code')) { await p.fill('#code', 'chir'); await p.click('#go'); }
+  await p.waitForTimeout(600);
+  ok(await p.isVisible('#code') && !(await p.isVisible('#app')), 'sans code : écran du code affiché, admin masquée');
+  await p.fill('#code', 'faux'); await p.click('#go'); await p.waitForTimeout(600);
+  ok((await p.innerText('#gmsg')).includes('Code incorrect') && !(await p.isVisible('#app')), 'faux code : « Code incorrect », admin toujours masquée');
+  ok(chargements === 1, 'aucune boucle de rechargement (' + chargements + ' chargement)');
+  await p.fill('#code', 'chir'); await p.click('#go');
+  await p.waitForSelector('#app:not([hidden])');
+  ok((await p.innerText('#who')).includes('Chirurgien'), 'bon code : entre en chirurgien');
   await p.click('[data-v=patients]');
   await p.waitForSelector('[data-testid=liste-patients] tbody tr');
   const noms = () => p.$$eval('[data-testid=liste-patients] tbody tr', L => L.map(r => r.cells[0].innerText));

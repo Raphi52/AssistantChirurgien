@@ -48,6 +48,12 @@ Un suivi en 5 étapes, avec une vue d'avancement (pourcentage, statut de chaque 
 Test : serveur lancé, puis `node test/prep-ui.cjs <code>`. Le test utilise `playwright-core`, installé dans `../BlocAccord`.
 Vue « Patients » de l'admin (document complet signé) : `node test/admin-dossier-ui.cjs`. Il lance seul son serveur, sur une copie du projet.
 
+## Accès à l'admin : code obligatoire (2026-10-06)
+L'admin (`/admin.html`) demande un **code par rôle** : chirurgien (valide et publie) ou secrétariat (propose). Sans code reconnu, toutes les routes `/api/admin/*` répondent 401.
+- Les codes viennent des variables `ADMIN_CHIRURGIEN` et `ADMIN_SECRETARIAT`. Sinon, ils sont tirés au hasard au premier démarrage et gardés dans `admin-data/codes.json` (non versionné).
+- Le code est retenu pour l'onglet en cours ; « Quitter » l'oublie.
+- Avant cette date, un code absent ou faux entrait en chirurgien (démo). Un audit a mesuré que, une fois le serveur joignable en public, n'importe qui pouvait alors lire les dossiers et signatures et publier des fiches.
+
 ## Relecture et sujets manquants (2026-10-02)
 - Admin → **Fiches** : propositions du secrétariat en tête (« ✓ Valider et publier » / « Rejeter »), puis « + Nouvelle fiche », puis « ✓ Valider telle quelle » sur chaque fiche non relue (les onglets Relecture, À valider et Nouvelle fiche ont été retirés le 2026-10-05).
 - `ONLY_VALIDATED=1` (variable d'environnement au démarrage) : l'assistant n'utilise plus QUE les fiches validées. Désactivé par défaut tant que la relecture n'est pas avancée, sinon presque tout part au secrétariat.

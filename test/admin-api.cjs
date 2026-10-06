@@ -17,7 +17,15 @@ const ask = async q => (await (await fetch(U + '/api/ask', { method: 'POST', hea
 
 (async () => {
   for (let i = 0; i < 40; i++) { try { await fetch(U + '/'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
-  await t('sans code → entre en chirurgien (démo)', async () => assert.strictEqual((await call('faux', 'moi')).j.role, 'chirurgien'));
+  // L'admin contient des dossiers patients et des signatures, et peut publier des fiches servies aux patients :
+  // sans code reconnu, TOUT est refusé (avant le 2026-10-06, un code absent ou faux entrait en chirurgien).
+  const sansEntete = async (p, body) => (await fetch(U + '/api/admin/' + p, { method: body ? 'POST' : 'GET', headers: { 'content-type': 'application/json' }, body: body && JSON.stringify(body) })).status;
+  await t('sans code → refusé (401) sur chaque route admin', async () => {
+    for (const p of ['moi', 'fiches', 'patients', 'patient?id=0123456789abcdef', 'journal', 'operations']) assert.strictEqual(await sansEntete(p), 401, p);
+    assert.strictEqual(await sansEntete('publier', { fiche: { question: 'Intrusion test', answer: 'x'.repeat(30) } }), 401, 'publier');
+  });
+  // (Les espaces autour d'un en-tête sont retirés par HTTP lui-même : « chir » entouré d'espaces reste « chir ».)
+  await t('code faux, vide, tronqué ou trop long → refusé (401)', async () => { for (const c of ['faux', '', 'chi', 'chirr', 'secr0']) assert.strictEqual((await call(c, 'moi')).s, 401, JSON.stringify(c)); });
   await t('rôles reconnus', async () => { assert.strictEqual((await call('chir', 'moi')).j.role, 'chirurgien'); assert.strictEqual((await call('secr', 'moi')).j.role, 'secretariat'); });
   await t('500 fiches listées', async () => assert.strictEqual((await call('secr', 'fiches')).j.length, 500));
   await t('le secrétariat ne peut pas publier directement', async () => assert.strictEqual((await call('secr', 'publier', { fiche: { question: 'Test test', answer: 'x'.repeat(30) } })).s, 403));

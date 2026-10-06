@@ -37,8 +37,15 @@ const ADMIN_CODES = (() => {
   return c;
 })();
 if (require.main === module) console.log(`[admin] codes administrateur dans ${CODES_FILE}`);
-// Démo : plus de code admin exigé — sans code reconnu, on entre en chirurgien (choix utilisateur, 2026-10-04).
-const roleOf = req => Object.keys(ADMIN_CODES).find(r => req.headers['x-admin-code'] === ADMIN_CODES[r]) || 'chirurgien';
+// Code admin OBLIGATOIRE : l'admin donne accès aux dossiers patients (signatures comprises) et publie les fiches
+// servies aux patients. Sans code reconnu → aucun rôle → 401. Le 2026-10-04, un code absent entrait en chirurgien
+// (démo) ; c'était ouvert à tous dès que le serveur était joignable en public. Fermé le 2026-10-06 à la demande de
+// l'utilisateur, après un audit qui l'a mesuré. Comparaison en temps constant pour ne rien laisser deviner du code.
+const memeCode = (a, b) => {
+  const x = Buffer.from(String(a || '')), y = Buffer.from(String(b || ''));
+  return x.length > 0 && x.length === y.length && crypto.timingSafeEqual(x, y);
+};
+const roleOf = req => Object.keys(ADMIN_CODES).find(r => memeCode(req.headers['x-admin-code'], ADMIN_CODES[r])) || null;
 
 // ⚠️ DÉMO : dossiers de préparation stockés sur le serveur — dérogation à « aucune donnée patient » (voir lib/dossiers.js).
 const operations = createOperations(path.join(__dirname, 'admin-data', 'operations.json'));

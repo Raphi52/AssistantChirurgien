@@ -72,7 +72,8 @@ let CODE = sessionStorage.getItem('admin-code'), ROLE = null, FICHES = [], VUE =
 const api = async (p, body) => {
   const r = await fetch('/api/admin/' + p, { method: body ? 'POST' : 'GET', headers: { 'x-admin-code': CODE, 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));
-  if (r.status === 401) { sessionStorage.removeItem('admin-code'); location.reload(); }
+  // Code refusé : retour à l'écran du code, sans recharger (recharger rebouclait sur le même refus).
+  if (r.status === 401) { sessionStorage.removeItem('admin-code'); CODE = null; $('#app').hidden = true; $('#gate').hidden = false; throw new Error('code'); }
   if (!r.ok) throw new Error(j.error || ('Erreur ' + r.status));
   return j;
 };
@@ -133,7 +134,9 @@ document.addEventListener('click', e => {
 
 async function entrer() {
   CODE = $('#code').value.trim() || CODE;
-  try { ROLE = (await api('moi')).role; } catch { $('#gmsg').innerHTML = '<div class="msg err">Code incorrect.</div>'; return; }
+  if (!CODE) { $('#gmsg').innerHTML = '<div class="msg err">Entrez votre code administrateur.</div>'; return; }
+  try { ROLE = (await api('moi')).role; } catch { $('#gmsg').innerHTML = '<div class="msg err">Code incorrect.</div>'; $('#code').value = ''; $('#code').focus(); return; }
+  $('#gmsg').innerHTML = '';
   sessionStorage.setItem('admin-code', CODE);
   $('#gate').hidden = true; $('#app').hidden = false;
   $('#who').textContent = chir() ? '· Chirurgien (valide et publie)' : '· Secrétariat (propose, le chirurgien valide)';
@@ -252,9 +255,11 @@ document.addEventListener('click', async e => {
 });
 $('#go').onclick = entrer;
 $('#code').onkeydown = e => { if (e.key === 'Enter') entrer(); };
-// « Quitter » ramène à l'accueil patients (index.html) : avec l'accès direct sans code, recharger l'admin n'en sortait pas (choix utilisateur, 2026-10-05).
+// « Quitter » oublie le code de l'onglet et ramène à l'accueil patients (index.html) (choix utilisateur, 2026-10-05).
 $('#out').onclick = () => { sessionStorage.removeItem('admin-code'); location.href = '/'; };
-$('#gate').hidden = true; entrer(); // démo : accès direct sans code
+// Code obligatoire (2026-10-06) : on rentre directement seulement si l'onglet a déjà un code accepté ;
+// sinon l'écran du code reste affiché.
+if (CODE) { $('#gate').hidden = true; entrer(); } else { $('#code').focus(); }
 </script>
 </body>
 </html>
