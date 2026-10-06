@@ -72,6 +72,26 @@ async function t(name, fn) { try { await fn(); ok++; } catch (e) { ko++; console
   });
 
   await t('question hors sujet → transfert', async () => assert.strictEqual((await answer('quel temps fera-t-il à Paris demain')).type, 'transfert'));
+
+  // Recherche sans modèle (2026-10-06) — mesurée sur test/questions-patients.json par test/mesure-couverture.cjs.
+  const { ficheDirecte, tokens: tok, notionsLexique } = require('../lib/brain');
+  const { LEXIQUE } = require('../lib/lexique');
+  await t('lexique : chaque entrée donne au moins une notion, et chaque mot cible existe dans les fiches', () => {
+    for (const [k, v] of Object.entries(LEXIQUE)) {
+      const n = notionsLexique(v); assert.ok(n.length, k + ' ne produit rien (mot vide ?)');
+      for (const alt of n) for (const x of alt) assert.ok(brain.df[x], `${k} → « ${x} » absent des fiches`);
+    }
+  });
+  await t('ligature : « cœlioscopie » et « coelioscopie » donnent les mêmes mots', () => assert.deepStrictEqual(tok('cœlioscopie Œsophage'), tok('coelioscopie oesophage')));
+  await t("« fils » n'est pas « fil » : pas de fiche « fil qui dépasse » pour une otite", () => assert.strictEqual(ficheDirecte(search(brain, 'mon fils a une otite', 10)), null));
+  await t('synonymes = une seule notion : « qui les enlève » trouve F089 (qui dit « retirer »)', () => assert.strictEqual(ficheDirecte(search(brain, "on m'a mis des agrafes qui les enlève", 10)).id, 'F089'));
+  await t("un mot rare non trouvé bloque la fiche : « mal au mollet depuis l'opération » ≠ « je dors mal depuis »", () => {
+    const d = ficheDirecte(search(brain, "j'ai mal au mollet depuis l'opération", 10)); assert.ok(!d || d.id !== 'F165', d && d.id);
+  });
+  await t('couverture sans modèle (jeu de travail) : ≥ 72 bonnes fiches sur 90, ≤ 3 mauvaises, ≤ 2 hors sujet servis', () => {
+    const r = require('./mesure-couverture.cjs').mesurer('travail');
+    assert.ok(r.juste >= 72 && r.fausse <= 3 && r.negFiche <= 2, JSON.stringify({ juste: r.juste, fausse: r.fausse, horsSujet: r.negFiche }));
+  });
   await t('urgence → alerte avant toute IA', async () => assert.strictEqual((await answer("j'ai 39 de fièvre")).type, 'alerte'));
   await t('question courante → réponse avec fiche', async () => { const r = await answer('peut-on vivre sans vésicule ?'); assert.strictEqual(r.type, 'reponse'); assert.strictEqual(r.fiche.id, 'F204'); });
 

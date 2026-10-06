@@ -7,7 +7,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { loadBrain, search, tokens } = require('./lib/brain');
+const { loadBrain, search, tokens, ficheDirecte } = require('./lib/brain');
 const { checkRedFlags } = require('./lib/redflags');
 const { notify, newRef } = require('./lib/notify');
 const { createStore } = require('./lib/admin');
@@ -80,10 +80,12 @@ function buildPrompt(question, hits, historique = []) {
   return `Tu es l'assistant d'information des patients d'un chirurgien digestif (estomac, vésicule, hernies, reflux, appendicite, côlon, avant et après l'opération).
 Le SECOND BRAIN ci-dessous contient les fiches rédigées pour l'équipe. C'est ta source PRIORITAIRE.
 RÈGLES :
-- Réponds TOUJOURS à la question du patient, même si elle est formulée autrement que les fiches : cherche le sens, combine plusieurs fiches si utile.
+- Pour toute question de TON DOMAINE (défini plus bas), réponds TOUJOURS, même si elle est formulée autrement que les fiches : cherche le sens, combine plusieurs fiches si utile.
 - Appuie-toi d'abord sur les fiches et ne les contredis jamais. Cite à la fin la ou les références utilisées entre crochets, ex. [F012][F089].
 - Si aucune fiche ne couvre la question, donne une information générale prudente et courante sur le sujet, et termine par [GENERAL].
-- Si la question n'a aucun rapport avec une opération ou la santé digestive, dis gentiment que tu réponds aux questions sur l'opération, et termine par [HORS_SUJET].
+- TON DOMAINE : l'opération digestive du patient (avant, pendant, après), ses suites et la santé digestive. Un symptôme qui peut venir de l'opération ou de l'anesthésie (jambe, épaule, tête, gorge, fièvre, urines…) en fait partie.
+- Un AUTRE problème de santé sans lien avec cette opération (dents, angine, peau, yeux, articulations, varices, tension, sommeil, autre spécialité, chirurgie de l'obésité qui n'est pas traitée ici…) est HORS SUJET : ne donne AUCUN conseil, médicament ni explication médicale ; dis gentiment que tu réponds aux questions sur l'opération et que son médecin traitant est le bon interlocuteur, et termine par [HORS_SUJET].
+- Une question pratique que les fiches ne traitent pas (parking, wifi, télévision…) ou sans rapport avec la santé : n'invente aucun détail, dis que le secrétariat peut renseigner, et termine par [HORS_SUJET].
 - Jamais de diagnostic personnel, jamais de modification de traitement. Si un symptôme décrit peut être grave, dis d'appeler le 15.
 - Français simple et rassurant, 2 à 6 phrases, sans markdown, tutoiement interdit (vouvoie).
 
@@ -198,8 +200,9 @@ async function answer(question, historique = [], onDelta) {
   if (!text) {
     // Sans modèle : la fiche la plus proche si la recherche a trouvé quelque chose, sinon renvoi au secrétariat.
     // (filtre léger, mode SANS modèle seulement : sinon « quel temps fera-t-il » ressortait une fiche au hasard)
-    if (!hits.length || hits[0].score < 3 || hits[0].coverage < 0.3) { stats.sansFiche++; compterSujet(question); return { type: 'transfert', text: TRANSFER_MSG, ref: signaler('transfert', question, 'aucune fiche ne correspond') }; }
-    text = `${hits[0].doc.answer} [${hits[0].doc.id}]`;
+    const doc = ficheDirecte(hits);
+    if (!doc) { stats.sansFiche++; compterSujet(question); return { type: 'transfert', text: TRANSFER_MSG, ref: signaler('transfert', question, 'aucune fiche ne correspond') }; }
+    text = `${doc.answer} [${doc.id}]`;
   }
   const portee = /\[HORS_SUJET\]/.test(text) ? 'hors_sujet' : /\[GENERAL\]/.test(text) ? 'generale' : 'fiches';
   const ids = [...new Set((text.match(/\[(F\d{3})\]/g) || []).map(s => s.slice(1, -1)))].filter(id => brain.byId[id] && utilisable(brain.byId[id]));

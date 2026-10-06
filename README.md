@@ -22,8 +22,20 @@ Réglages (variables d'environnement) : `ACCESS_CODE` (code patient), `PORT`, `U
 - `data/*.json` : le second brain. 500 fiches réparties en 10 thèmes. **Toutes ont `validated:false`** : elles ont été rédigées sans le chirurgien et doivent être relues.
 - `node scripts/export-relecture.js` : produit `relecture-fiches.csv` pour Excel, à faire annoter par le chirurgien.
 - `lib/redflags.js` : signes d'alerte → message « appelez le 15 ». À faire valider en priorité.
-- `lib/brain.js` : recherche dans les fiches (BM25, sans dépendance).
+- `lib/brain.js` : recherche dans les fiches (BM25, sans dépendance). `ficheDirecte` décide, SANS modèle, entre une fiche et le renvoi au secrétariat.
+- `lib/lexique.js` : vocabulaire du patient → mots des fiches (marques de médicaments, mots familiers). Aucune réponse médicale ; **à relire par le chirurgien** comme les fiches.
 - `test/run.js` : `node test/run.js` (tests automatiques).
+
+## Mesurer la couverture (2026-10-06)
+Trois jeux de questions de patients, chacun avec la ou les fiches qui y répondent, plus des questions hors sujet :
+- `test/questions-patients.json` : 185 + 25 questions écrites à la main. Moitié **travail** (réglages), moitié **contrôle**.
+- `test/questions-fraiches.json` : 120 + 30 questions écrites par le modèle à partir de fiches tirées au hasard. **Juge indépendant** : il n'a servi à aucun réglage.
+
+Commandes :
+- `node test/mesure-couverture.cjs [--travail] [--detail]` : chemin **sans modèle**. Instantané et gratuit. Les seuils y sont gardés par `test/run.js`.
+- `node test/mesure-couverture-modele.cjs controle|travail|frais|dev-hors-sujet` : chemin **avec le modèle**. Environ 30 000 jetons et 6 s par question, sur l'abonnement.
+
+Pour lire les résultats : une **mauvaise fiche** (le patient reçoit une réponse sur autre chose) compte deux fois plus qu'un renvoi au secrétariat.
 
 ## Limites assumées (démo)
 - **Abonnement Claude personnel** via la commande `claude -p` : acceptable pour une démonstration, pas pour des patients réels. En production, passer à l'API.

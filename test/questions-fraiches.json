@@ -1,0 +1,517 @@
+{
+ "_lisez_moi": "Jeu FRAIS généré le 2026-10-06 par le modèle (claude -p), à partir de 120 fiches tirées au hasard (graine 20261006) et de la liste des 500 titres pour les hors sujet. Jamais utilisé pour régler la recherche ni le lexique : c est le juge indépendant. positives : [question, fiche source] (une seule fiche attendue : une autre fiche valable comptera comme mauvaise, la mesure est donc prudente). Ne pas modifier pour faire monter un score.",
+ "positives": [
+  [
+   "c'est quoi les étapes avant de me faire opérer du ventre, j'ai des trucs à faire avant ?",
+   "F001"
+  ],
+  [
+   "je dois voir un médecin pour l'endormissement avant mon intervention, ça sert à quoi, c'est vraiment obligé ?",
+   "F002"
+  ],
+  [
+   "à partir de quelle heure je dois arrêter de manger et de boire avant de passer au bloc ?",
+   "F003"
+  ],
+  [
+   "ma mère prend de l'Eliquis, elle doit l'arrêter avant son opération ?",
+   "F007"
+  ],
+  [
+   "le chirurgien parle de m'ouvrir le ventre au lieu de passer par des petits trous, ça veut dire quoi ?",
+   "F013"
+  ],
+  [
+   "on m'a prévenu qu'il faudrait peut-être ouvrir en grand pendant l'intervention, pourquoi ça arrive ?",
+   "F014"
+  ],
+  [
+   "c'est quoi ce programme pour sortir plus vite de l'hôpital dont m'a parlé l'infirmière ?",
+   "F019"
+  ],
+  [
+   "est-ce que je vais devoir prendre des purges ou des lavements avant mon opé de l'intestin ?",
+   "F021"
+  ],
+  [
+   "si je tombe malade la semaine avant, ils peuvent décaler l'intervention ?",
+   "F026"
+  ],
+  [
+   "je risque d'être indisposée le jour de l'intervention, c'est gênant ?",
+   "F028"
+  ],
+  [
+   "je porte un dentier, je peux le garder pour aller au bloc ?",
+   "F031"
+  ],
+  [
+   "je peux aller à l'hôpital tout seul en bus ou il faut que quelqu'un m'accompagne ?",
+   "F032"
+  ],
+  [
+   "je sors le soir même, il faut vraiment que quelqu'un dorme chez moi ?",
+   "F034"
+  ],
+  [
+   "je dois être là combien de temps avant l'heure prévue de mon opé ?",
+   "F035"
+  ],
+  [
+   "est-ce que je peux avoir une chambre individuelle pendant mon séjour ?",
+   "F043"
+  ],
+  [
+   "est-ce que c'est bien le docteur que j'ai vu en consultation qui fera l'intervention ou un interne ?",
+   "F047"
+  ],
+  [
+   "mon père a une pile cardiaque, il faut prévenir avant son intervention ?",
+   "F049"
+  ],
+  [
+   "j'ai un petit tuyau qui sort du ventre avec une poche, ça sert à quoi ?",
+   "F055"
+  ],
+  [
+   "pourquoi on m'a mis un tuyau dans la narine après l'intervention ?",
+   "F056"
+  ],
+  [
+   "l'infirmière me pique dans le ventre tous les soirs, c'est pour quoi ?",
+   "F059"
+  ],
+  [
+   "mon mari peut venir me chercher en voiture le jour de la sortie ?",
+   "F064"
+  ],
+  [
+   "ma famille peut venir me voir pendant que je suis hospitalisée ?",
+   "F065"
+  ],
+  [
+   "j'ai le bide tout gonflé depuis l'opé par les petits trous, c'est normal ?",
+   "F069"
+  ],
+  [
+   "comment je récupère le rapport de ce que le chirurgien a fait pendant l'intervention ?",
+   "F081"
+  ],
+  [
+   "comment sortir du lit sans avoir mal au ventre ?",
+   "F087"
+  ],
+  [
+   "j'ai un truc brillant genre vernis sur la plaie au lieu des points, c'est quoi ?",
+   "F090"
+  ],
+  [
+   "je dois porter les chaussettes de compression jusqu'à quand ?",
+   "F093"
+  ],
+  [
+   "jusqu'à quand je dois faire les injections de Lovenox ?",
+   "F094"
+  ],
+  [
+   "j'ai un vol prévu dans 10 jours, c'est risqué après mon intervention ?",
+   "F096"
+  ],
+  [
+   "j'ai encore mal depuis l'opé, ça va durer combien de temps en général ?",
+   "F102"
+  ],
+  [
+   "quand est-ce que je pourrai me prélasser dans la baignoire ?",
+   "F111"
+  ],
+  [
+   "le bord de ma plaie est tout rosé, je dois m'inquiéter ?",
+   "F113"
+  ],
+  [
+   "les bords de ma plaie se sont un peu écartés ce matin, je fais quoi ?",
+   "F115"
+  ],
+  [
+   "je peux mettre de la Biafine sur ma plaie ?",
+   "F121"
+  ],
+  [
+   "ça allait mieux et là j'ai de nouveau mal un mois après, c'est normal ?",
+   "F127"
+  ],
+  [
+   "je peux me frictionner doucement le bide pour le détendre ?",
+   "F134"
+  ],
+  [
+   "ma plaie dégage une drôle d'odeur depuis hier",
+   "F141"
+  ],
+  [
+   "à partir de quand avoir mal c'est plus normal et il faut appeler ?",
+   "F150"
+  ],
+  [
+   "qu'est-ce que je peux manger en rentrant chez moi après mon opé du ventre ?",
+   "F151"
+  ],
+  [
+   "j'ai mal au cœur depuis que je suis rentré à la maison",
+   "F156"
+  ],
+  [
+   "j'ai 38,7 ce soir, trois jours après l'opé, je fais quoi ?",
+   "F158"
+  ],
+  [
+   "je suis complètement crevé une semaine après l'intervention, c'est normal ?",
+   "F159"
+  ],
+  [
+   "j'ai le moral à zéro depuis l'intervention, je pleure pour un rien",
+   "F166"
+  ],
+  [
+   "quand est-ce que je peux retourner à la salle de muscu ?",
+   "F170"
+  ],
+  [
+   "je pourrai refaire de la bicyclette quand ?",
+   "F174"
+  ],
+  [
+   "quand je pourrai retourner faire mes longueurs ?",
+   "F175"
+  ],
+  [
+   "je peux boire un verre de vin au repas avec mes cachets contre la douleur ?",
+   "F176"
+  ],
+  [
+   "j'ai grossi de 3 kilos depuis l'intervention",
+   "F180"
+  ],
+  [
+   "j'ai maigri de 5 kilos depuis l'opé, c'est inquiétant ?",
+   "F181"
+  ],
+  [
+   "un mois après, ça tire encore quand je force, c'est normal ?",
+   "F191"
+  ],
+  [
+   "je peux promener mon chien après mon opé ?",
+   "F194"
+  ],
+  [
+   "j'hésite à appeler le service pour un petit symptôme, j'ai peur de déranger",
+   "F200"
+  ],
+  [
+   "comment ils font pour m'enlever la vésicule, c'est long ?",
+   "F205"
+  ],
+  [
+   "on m'a enlevé la vésicule il y a 10 jours et j'ai toujours mal",
+   "F209"
+  ],
+  [
+   "c'est quoi une inflammation du pancréas à cause d'un caillou ?",
+   "F213"
+  ],
+  [
+   "on m'a trouvé des cailloux dans la vésicule par hasard, j'ai aucun symptôme, faut opérer ?",
+   "F216"
+  ],
+  [
+   "une fois la vésicule enlevée, les cailloux peuvent se reformer ?",
+   "F218"
+  ],
+  [
+   "je suis secrétaire, je reprends le boulot quand après ma cholécystectomie ?",
+   "F219"
+  ],
+  [
+   "depuis qu'on m'a retiré la vésicule j'ai envie de vomir après une raclette",
+   "F224"
+  ],
+  [
+   "je suis enceinte de 4 mois et j'ai des cailloux dans la vésicule, on peut m'opérer ?",
+   "F229"
+  ],
+  [
+   "j'ai une douleur qui part dans l'épaule droite quand j'ai mes crises de foie",
+   "F230"
+  ],
+  [
+   "l'écho a montré une petite excroissance sur ma vésicule, c'est grave ?",
+   "F231"
+  ],
+  [
+   "depuis qu'on m'a enlevé la vésicule j'ai le ventre gonflé après manger",
+   "F234"
+  ],
+  [
+   "en attendant mon opé de la vésicule, quels signes doivent me faire aller aux urgences ?",
+   "F238"
+  ],
+  [
+   "ma prise de sang montre la bili haute, c'est grave ?",
+   "F239"
+  ],
+  [
+   "on peut pas juste enlever les cailloux et me laisser ma vésicule ?",
+   "F240"
+  ],
+  [
+   "ma grand-mère a 88 ans, on peut lui enlever la vésicule à son âge ?",
+   "F241"
+  ],
+  [
+   "je vais devoir prendre un traitement toute ma vie maintenant que j'ai plus de vésicule ?",
+   "F244"
+  ],
+  [
+   "le chirurgien m'a dit que ma vésicule avait percé, ça change quoi pour la suite ?",
+   "F245"
+  ],
+  [
+   "le compte rendu parle de sludge dans la vésicule, c'est quoi ?",
+   "F250"
+  ],
+  [
+   "c'est quoi l'appendice et pourquoi ça s'infecte ?",
+   "F251"
+  ],
+  [
+   "mon fils se fait opérer de l'appendice, il va rester combien de nuits ?",
+   "F254"
+  ],
+  [
+   "ça sert à quelque chose l'appendice, ça va me manquer ?",
+   "F255"
+  ],
+  [
+   "ma fille a été opérée de l'appendice, elle retourne au collège quand ?",
+   "F261"
+  ],
+  [
+   "depuis mon opé de l'appendicite j'ai la courante",
+   "F268"
+  ],
+  [
+   "le chirurgien a dit que mon appendicite était grave avec du pus, ça change quoi pour la suite ?",
+   "F269"
+  ],
+  [
+   "combien de marques sur le ventre après l'opé de l'appendicite ?",
+   "F271"
+  ],
+  [
+   "pourquoi on doit passer un scan si c'est juste l'appendicite ?",
+   "F274"
+  ],
+  [
+   "on peut se faire enlever l'appendice par précaution avant de partir longtemps à l'étranger ?",
+   "F275"
+  ],
+  [
+   "ma grand-mère dit qu'avaler les graines du raisin provoque l'appendicite, c'est vrai ?",
+   "F276"
+  ],
+  [
+   "mon fils a un tuyau qui sort du ventre après son appendicite, ça va rester longtemps ?",
+   "F277"
+  ],
+  [
+   "ils ont opéré ma fille à 2h du matin pour son appendice, pourquoi si vite ?",
+   "F278"
+  ],
+  [
+   "je n'arrête pas de rendre depuis qu'on m'a enlevé l'appendice",
+   "F279"
+  ],
+  [
+   "le chirurgien dit que mon appendice était sain finalement, alors pourquoi j'avais mal ?",
+   "F282"
+  ],
+  [
+   "une semaine après l'appendicite j'ai les selles liquides et 38,5",
+   "F287"
+  ],
+  [
+   "je suis encore épuisé après mon appendicite, ça dure combien de temps ?",
+   "F291"
+  ],
+  [
+   "depuis que je prends l'Augmentin j'ai la diarrhée",
+   "F292"
+  ],
+  [
+   "j'ai mal à l'épaule depuis qu'on m'a enlevé l'appendice, c'est lié ?",
+   "F293"
+  ],
+  [
+   "je crois que j'ai l'appendicite, je peux manger en attendant d'aller aux urgences ?",
+   "F298"
+  ],
+  [
+   "on m'a parlé d'une hernie fémorale juste sous le pli de l'aine, c'est quoi ?",
+   "F305"
+  ],
+  [
+   "j'ai une petite boule à l'aine qui me gêne pas, je suis obligé de me faire opérer ?",
+   "F306"
+  ],
+  [
+   "je vais rester combien de temps hospitalisé pour ma hernie à l'aine ?",
+   "F313"
+  ],
+  [
+   "mes testicules sont gonflés et bleus depuis l'opé de ma hernie",
+   "F317"
+  ],
+  [
+   "il y a une bosse molle là où on m'a réparé la hernie",
+   "F318"
+  ],
+  [
+   "ça fait 4 mois qu'on m'a opéré la hernie et j'ai toujours mal à l'aine",
+   "F320"
+  ],
+  [
+   "est-ce que ma hernie risque de ressortir après l'opération ?",
+   "F321"
+  ],
+  [
+   "j'ai du mal à aller aux toilettes depuis l'opé de ma hernie, c'est risqué de pousser ?",
+   "F328"
+  ],
+  [
+   "j'ai une petite boule au milieu du ventre entre le nombril et le sternum, c'est une hernie ?",
+   "F330"
+  ],
+  [
+   "depuis ma grossesse j'ai les abdos écartés, c'est grave ?",
+   "F331"
+  ],
+  [
+   "après la réparation de ma cicatrice qui avait lâché, je dois mettre une ceinture abdo ?",
+   "F333"
+  ],
+  [
+   "on m'opère d'une hernie sur ma vieille cicatrice, il faut combien de temps pour s'en remettre ?",
+   "F334"
+  ],
+  [
+   "le chirurgien veut que je maigrisse avant de m'opérer de ma hernie du nombril, pourquoi ?",
+   "F335"
+  ],
+  [
+   "on peut refaire l'amour quand après une hernie ?",
+   "F337"
+  ],
+  [
+   "c'est parce que j'ai porté un truc lourd que j'ai eu ma hernie ?",
+   "F342"
+  ],
+  [
+   "je me suis fait ma hernie en portant des palettes au boulot, c'est un AT ?",
+   "F343"
+  ],
+  [
+   "une boule est apparue sur ma cicatrice d'une opération d'il y a 5 ans",
+   "F345"
+  ],
+  [
+   "j'ai peur de lâcher les points si j'éternue après ma hernie",
+   "F348"
+  ],
+  [
+   "c'est quoi exactement le RGO ?",
+   "F351"
+  ],
+  [
+   "on m'a dit qu'un bout de mon estomac remonte à travers le diaphragme, c'est quoi ?",
+   "F352"
+  ],
+  [
+   "j'en ai marre de prendre de l'Inexium tous les jours, on peut m'opérer pour mes remontées acides ?",
+   "F354"
+  ],
+  [
+   "qu'est-ce que je peux manger après l'opé de Nissen ?",
+   "F356"
+  ],
+  [
+   "on m'a prescrit un examen avec une sonde dans le nez pendant 24h pour mesurer l'acide, ça sert à quoi ?",
+   "F363"
+  ],
+  [
+   "pourquoi on me fait un examen pour mesurer les contractions de mon œsophage avant l'opé ?",
+   "F364"
+  ],
+  [
+   "on m'a trouvé H. pylori à la fibro, c'est grave ?",
+   "F366"
+  ],
+  [
+   "est-ce qu'on doit m'opérer pour mon ulcère ou les médicaments suffisent ?",
+   "F367"
+  ],
+  [
+   "c'est quoi quand un ulcère fait un trou dans l'estomac ?",
+   "F368"
+  ],
+  [
+   "mon père a vomi un truc noir comme du marc de café",
+   "F369"
+  ],
+  [
+   "mes cacas sont tout noirs depuis hier",
+   "F370"
+  ],
+  [
+   "pourquoi je dois faire des piqûres de B12 à vie depuis qu'on m'a enlevé l'estomac ?",
+   "F375"
+  ],
+  [
+   "ma mère rentre à la maison avec un tube dans le ventre pour la nourrir, comment ça marche ?",
+   "F377"
+  ]
+ ],
+ "negatives": [
+  "j'ai une angine depuis 3 jours, il me faut des antibiotiques ?",
+  "j'ai un bouton de fièvre sur la lèvre, quelle crème mettre ?",
+  "mon genou craque quand je monte les escaliers, c'est de l'arthrose ?",
+  "j'ai une mycose entre les orteils, comment la traiter ?",
+  "ma tension est à 16, je dois m'inquiéter ?",
+  "mon fils a de l'eczéma sur les bras, quelle crème lui mettre ?",
+  "j'ai des migraines avec des flashs lumineux devant les yeux, c'est quoi ?",
+  "j'ai des varices sur les jambes, est-ce qu'on peut les enlever ?",
+  "j'ai mal aux dents depuis hier soir, je prends quoi ?",
+  "je ronfle énormément, c'est peut-être de l'apnée du sommeil ?",
+  "mon fils a la varicelle, il peut aller à la crèche ?",
+  "j'ai un orgelet sur l'œil, ça passe tout seul ?",
+  "je me suis tordu la cheville, je dois mettre une attelle ?",
+  "j'ai des sifflements dans l'oreille gauche depuis une semaine",
+  "j'ai un grain de beauté qui a changé de couleur",
+  "où est-ce que je peux me garer près de la clinique ?",
+  "il y a le wifi dans les chambres ?",
+  "quels sont les horaires de la cafétéria de l'hôpital ?",
+  "je peux louer une télé dans ma chambre ?",
+  "comment faire ma déclaration d'impôts en ligne ?",
+  "quel temps il fera demain à Lyon ?",
+  "tu as une bonne recette de gratin dauphinois ?",
+  "comment refaire ma carte Vitale perdue ?",
+  "y a-t-il une pharmacie de garde ouverte ce dimanche ?",
+  "le cabinet est-il accessible en fauteuil roulant ?",
+  "à quelle heure ferme la poste du quartier ?",
+  "comment changer de mutuelle en cours d'année ?",
+  "quel forfait téléphone choisir pour ma grand-mère ?",
+  "comment obtenir une place en crèche pour mon bébé ?",
+  "il y a un distributeur de billets dans l'hôpital ?"
+ ]
+}
