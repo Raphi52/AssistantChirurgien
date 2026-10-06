@@ -30,10 +30,11 @@ Réglages (variables d'environnement) : `ACCESS_CODE` (code patient), `PORT`, `U
 Trois jeux de questions de patients, chacun avec la ou les fiches qui y répondent, plus des questions hors sujet :
 - `test/questions-patients.json` : 185 + 25 questions écrites à la main. Moitié **travail** (réglages), moitié **contrôle**.
 - `test/questions-fraiches.json` : 120 + 30 questions écrites par le modèle à partir de fiches tirées au hasard. **Juge indépendant** : il n'a servi à aucun réglage.
+- `test/questions-sans-fiche.json` : 30 questions **du domaine** auxquelles aucune fiche ne répond (tatouage, ramadan, allaitement…). Attendu : **renvoi au secrétariat**, jamais une réponse inventée. Depuis le 2026-10-06, le modèle n'a plus le droit de donner une « information générale » hors des fiches, et le serveur (`conclure` dans `server.js`) remplace par le renvoi toute réponse qui ne cite aucune fiche existante.
 
 Commandes :
 - `node test/mesure-couverture.cjs [--travail] [--detail]` : chemin **sans modèle**. Instantané et gratuit. Les seuils y sont gardés par `test/run.js`.
-- `node test/mesure-couverture-modele.cjs controle|travail|frais|dev-hors-sujet` : chemin **avec le modèle**. Environ 30 000 jetons et 6 s par question, sur l'abonnement.
+- `node test/mesure-couverture-modele.cjs controle|travail|frais|dev-hors-sujet|sans-fiche` : chemin **avec le modèle**. Environ 30 000 jetons et 6 s par question, sur l'abonnement. Elle affiche aussi le texte que le patient voit **défiler** avant un renvoi, et signale « MESURE NON VALABLE » si le modèle était indisponible pendant la mesure.
 
 Pour lire les résultats : une **mauvaise fiche** (le patient reçoit une réponse sur autre chose) compte deux fois plus qu'un renvoi au secrétariat.
 
