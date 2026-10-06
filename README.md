@@ -20,7 +20,8 @@ Réglages (variables d'environnement) : `ACCESS_CODE` (code patient), `PORT`, `U
 
 ## Fichiers
 - `data/*.json` : le second brain. 500 fiches réparties en 10 thèmes. **Toutes ont `validated:false`** : elles ont été rédigées sans le chirurgien et doivent être relues.
-- `node scripts/export-relecture.js` : produit `relecture-fiches.csv` pour Excel, à faire annoter par le chirurgien.
+- `node scripts/export-relecture.js` : produit `relecture-fiches.csv` pour Excel, à faire annoter par le chirurgien. Une seule liste **classée par priorité**, à lire de haut en bas : (1) les marques de médicaments du lexique, (2) les fiches qui parlent de médicament ou d'un signe d'alerte, (3) les sujets sans fiche vus chez des patients, (4) les autres fiches, les plus demandées d'abord, (5) le reste du lexique, (6) les sujets sans fiche repérés en test, (7) les fiches déjà validées. La colonne « Pourquoi ce rang » dit ce qui a classé chaque ligne.
+- `lib/sujets.js` : compteur anonyme des sujets sans fiche (mots isolés, jamais la question ; montrés seulement à partir de 3 occurrences), partagé par l'écran admin et l'export de relecture.
 - `lib/redflags.js` : signes d'alerte → message « appelez le 15 ». À faire valider en priorité.
 - `lib/brain.js` : recherche dans les fiches (BM25, sans dépendance). `ficheDirecte` décide, SANS modèle, entre une fiche et le renvoi au secrétariat.
 - `lib/lexique.js` : vocabulaire du patient → mots des fiches (marques de médicaments, mots familiers). Aucune réponse médicale ; **à relire par le chirurgien** comme les fiches.
