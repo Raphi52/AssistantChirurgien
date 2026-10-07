@@ -1,0 +1,41 @@
+[
+ {
+  "pid": "0aeddd51",
+  "ts": "2026-10-07T09:02:27.049Z",
+  "role": "assistant",
+  "note": "Réponse du modèle sans fiche — à vérifier avant publication (réf. BC99CF)",
+  "fiche": {
+   "question": "je peux me faire un tatouage sur le ventre combien de temps apres une hernie inguinale ?",
+   "keywords": [],
+   "answer": "Aucune fiche de l'équipe ne traite du tatouage après une opération de hernie inguinale. Par prudence, il paraît raisonnable d'attendre que la cicatrisation soit complète et que la zone opérée ne soit plus sensible, et d'éviter de tatouer directement sur la cicatrice ou juste à côté tant qu'elle est récente. Le plus simple est de poser la question au chirurgien lors de votre consultation de contrôle : il pourra vous indiquer le bon délai selon l'aspect de votre cicatrice. L'équipe vous confirmera ce point.",
+   "validated": false
+  },
+  "avant": null
+ },
+ {
+  "pid": "aca327af",
+  "ts": "2026-10-07T09:03:03.133Z",
+  "role": "assistant",
+  "note": "Réponse du modèle sans fiche — à vérifier avant publication (réf. 3E1EBD)",
+  "fiche": {
+   "question": "ca crain de faire une cryothérapie apres une opération d'une hernie inguinale? jdois attendre combien de temps a peu pres post opération?",
+   "keywords": [],
+   "answer": "Aucune de nos fiches ne traite de la cryothérapie (en cabine ou corps entier) après une opération de hernie inguinale, je ne peux donc pas vous donner de délai préci. Par prudence, il semble raisonnable d'attendre au minimum que vos cicatrices soient bien fermées et que vous ayez repris vos activités sans douleur, car le froid intense et la sudation peuvent gêner une peau encore fragile. Le plus sûr est d'en parler au chirurgien, par exemple lors de la consultation de contrôle, qui vous confirmera le bon moment selon votre récupération.",
+   "validated": false
+  },
+  "avant": null
+ },
+ {
+  "pid": "c358d9af",
+  "ts": "2026-10-07T09:03:12.765Z",
+  "role": "assistant",
+  "note": "Réponse du modèle sans fiche — à vérifier avant publication (réf. D8FB48)",
+  "fiche": {
+   "question": "je peux me faire un tatouage sur le ventre combien de temps apres une hernie inguinale ?",
+   "keywords": [],
+   "answer": "Aucune de nos fiches ne traite du tatouage après une opération de hernie inguinale, je ne peux donc pas vous donner de délai préci. Par prudence, il paraît raisonnable d'attendre au minimum que vos cicatrices soient complètement fermées et bien cicatrisées, et d'éviter de tatouer directement sur la cicatrice ou juste à côté tant qu'elle évolue encore. Une peau encore fragile risque de s'infecter ou de mal cicatriser. Le plus sûr est d'en parler au chirurgien lors de la consultation de contrôle : il vous confirmera le bon moment selon l'état de vos cicatrice.",
+   "validated": false
+  },
+  "avant": null
+ }
+]
