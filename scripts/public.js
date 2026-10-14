@@ -42,7 +42,9 @@ const watch = d => {
     annoncerAuRelais(m[0]);
     console.log('\n==============================================');
     console.log(' Ouvre sur le téléphone : ' + m[0]);
-    console.log(' Code d\'accès           : ' + ACCESS_CODE);
+    // Depuis le 2026-10-14, le patient entre avec SON code personnel, créé par le secrétariat dans l'admin.
+    console.log(' Code patient           : créé dans l\'admin (Patients → Nouveau patient)');
+    console.log(' Code des compteurs     : ' + ACCESS_CODE + '  (/api/stats seulement)');
     console.log(' (puis « Ajouter à l\'écran d\'accueil »)');
     console.log('==============================================\n');
   }

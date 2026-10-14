@@ -37,7 +37,11 @@
   table.pat th.tri { cursor:pointer; user-select:none; white-space:nowrap; } table.pat th.tri:hover, table.pat th.tri.on { color:var(--c); }
   table.pat th.tri::after { content:attr(data-sens); font-size:11px; margin-left:3px; }
   #ops .op-nom { min-width:400px; }
-  #qp { margin:6px 0; } main:has(table.pat) { max-width:1200px; } table.pat td:nth-child(4) { white-space:nowrap; }
+  #qp { margin:6px 0; } main:has(table.pat) { max-width:1200px; } table.pat td.nw { white-space:nowrap; }
+  /* Fenêtre étroite : le tableau défile dans son cadre au lieu d'être coupé à droite (2 colonnes de plus depuis le 2026-10-14). */
+  .patwrap { overflow-x:auto; } table.pat th { white-space:nowrap; }
+  .cp label { flex:1; min-width:170px; margin:8px 0 0; } .cp .btn { align-self:flex-end; }
+  .codep { font:700 22px/1.3 ui-monospace,Consolas,monospace; letter-spacing:2px; color:var(--c); white-space:nowrap; } .codep-l { font-family:ui-monospace,Consolas,monospace; }
   .bar { background:#eef1f3; border-radius:6px; height:8px; width:90px; display:inline-block; vertical-align:middle; } .bar i { display:block; height:8px; border-radius:6px; background:var(--c); }
   .sigimg { max-width:260px; border:1px solid var(--l); border-radius:8px; background:#fff; display:block; margin:6px 0; }
   @media (max-width:600px) { .diff { grid-template-columns:1fr; } }
@@ -86,11 +90,16 @@ const CLINIQUES_NOMS = { parc: 'Clinique du Parc (Lyon 6e)', medipole: 'Médipô
 const CONS = { chir: 'Consentement opération', anesth: 'Consentement anesthésie', confiance: 'Personne de confiance', devis: 'Devis honoraires' };
 
 // Vue « Patients » : recherche et tri par colonne, sans rappel serveur (la liste est déjà chargée).
-const PAT = { L: [], q: '', tri: 'date', sens: 1 };
+const PAT = { L: [], q: '', tri: 'date', sens: 1, cree: null };
 const ratio = ([f, t]) => (t ? f / t : -1); // total 0 = étape non concernée, rangée en tête
+// Code personnel gardé sans tiret (lib/dossiers.js), affiché « ABCD-EFGH » pour se dicter facilement.
+const fmtCode = c => (c ? c.slice(0, 4) + '-' + c.slice(4) : '—');
+const fmtDate = s => (s ? s.split('-').reverse().join('/') : '—');
 const COLS = [
   { k: 'nom', t: 'Nom', tri: p => p.nom.toLowerCase() },
   { k: 'prenom', t: 'Prénom', tri: p => p.prenom.toLowerCase() },
+  { k: 'naissance', t: 'Né(e) le', tri: p => p.naissance || '9999' },
+  { k: 'code', t: 'Code', tri: p => p.code || 'ZZZZ' },
   { k: 'operation', t: 'Type d’opération', tri: p => p.operation.toLowerCase() },
   { k: 'date', t: 'Opération', tri: p => p.date || '9999' },
   { k: 'pct', t: 'Avancement', tri: p => p.pct },
@@ -98,13 +107,13 @@ const COLS = [
 ];
 function lignesPatients() {
   const q = PAT.q.trim().toLowerCase();
-  const L = PAT.L.filter(p => !q || [p.nom, p.prenom, p.patient, p.operation, p.clinique, CLINIQUES_NOMS[p.clinique], p.date].join(' ').toLowerCase().includes(q));
+  const L = PAT.L.filter(p => !q || [p.nom, p.prenom, p.patient, fmtDate(p.naissance), p.code, fmtCode(p.code), p.operation, p.clinique, CLINIQUES_NOMS[p.clinique], p.date].join(' ').toLowerCase().includes(q));
   const f = COLS.find(c => c.k === PAT.tri).tri;
   L.sort((a, b) => { const x = f(a), y = f(b); return (x < y ? -1 : x > y ? 1 : 0) * PAT.sens; });
   const cel = ([f, t]) => !t ? '<span class="meta">non concerné</span>' : f >= t ? '✓' : f ? f + '/' + t : '—';
   $('#np').textContent = L.length === PAT.L.length ? L.length + ' patient(s)' : L.length + ' patient(s) sur ' + PAT.L.length;
   document.querySelectorAll('th.tri').forEach(th => { const on = th.dataset.tri === PAT.tri; th.classList.toggle('on', on); th.dataset.sens = on ? (PAT.sens > 0 ? '▲' : '▼') : ''; });
-  $('#tp').innerHTML = L.length ? L.map(p => `<tr><td><b>${esc(p.nom || '—')}</b></td><td>${esc(p.prenom || '—')}</td><td>${esc(p.operation || '—')}</td><td>${esc(p.date || '—')}<div class="meta">${esc(p.clinique)}</div></td><td><span class="bar"><i style="width:${p.pct}%"></i></span> ${p.pct} %</td>
+  $('#tp').innerHTML = L.length ? L.map(p => `<tr><td><b>${esc(p.nom || '—')}</b></td><td>${esc(p.prenom || '—')}</td><td class="nw">${esc(fmtDate(p.naissance))}</td><td class="nw codep-l">${esc(fmtCode(p.code))}</td><td>${esc(p.operation || '—')}</td><td class="nw">${esc(p.date || '—')}<div class="meta">${esc(p.clinique)}</div></td><td>${p.majLe ? `<span class="bar"><i style="width:${p.pct}%"></i></span> ${p.pct} %` : '<span class="meta" data-testid="pas-connecte">pas encore connecté</span>'}</td>
     ${Object.keys(ETAPES).map(k => '<td>' + cel(p.progression[k]) + '</td>').join('')}<td><button class="btn sec" data-act="dossier" data-id="${p.id}">Consentements (${p.consentements.length})</button></td></tr>`).join('')
     : `<tr><td colspan="${COLS.length + 1}" class="count">Aucun patient ne correspond à « ${esc(PAT.q)} ».</td></tr>`;
 }
@@ -188,9 +197,18 @@ async function montrer(v, extra) {
       const op = OPS.find(o => o.id === p.operation);
       return { ...p, nom: p.nom || mots.slice(1).join(' '), prenom: p.prenom || mots[0] || '', operation: op ? op.nom : p.operation ? p.operation + ' (type supprimé)' : '' };
     });
-    V.innerHTML = DEMO + '<p class="row"><button class="btn sec" data-v="operations" data-testid="regler-operations">⚙️ Types d’opération</button></p>' + (PAT.L.length ? `<input id="qp" data-testid="recherche-patients" placeholder="Rechercher (nom, prénom, type d’opération, clinique, date)…" value="${esc(PAT.q)}">
-      <div class="count" id="np"></div><table class="pat" data-testid="liste-patients"><thead><tr>${COLS.map(c => `<th${c.tri ? ` class="tri" data-tri="${c.k}"` : ''}>${c.t}</th>`).join('')}<th></th></tr></thead><tbody id="tp"></tbody></table>`
-      : '<p class="count">Aucun patient n’a encore commencé sa préparation.</p>');
+    // Création du patient par le secrétariat (2026-10-14) : nom, prénom, date de naissance → code personnel à lui remettre.
+    const C = PAT.cree; PAT.cree = null;
+    const creation = `<div class="card" data-testid="nouveau-patient"><h3>Nouveau patient</h3>
+      <div class="meta">Le code personnel est généré à l’enregistrement. Remettez-le au patient : il le saisit à l’ouverture de l’application.</div>
+      <div class="row cp"><label>Nom<input id="cp-nom" autocomplete="off"></label><label>Prénom<input id="cp-prenom" autocomplete="off"></label>
+      <label>Date de naissance<input id="cp-naissance" type="date" min="1900-01-01" max="${new Date().toISOString().slice(0, 10)}"></label>
+      <button class="btn" data-act="patient-creer" data-testid="creer-patient">Créer et générer le code</button></div>
+      ${C ? `<div class="msg ok" data-testid="code-cree">${C.existait ? 'Ce patient existe déjà. Son code' : 'Patient créé. Code'} de <b>${esc(C.prenom)} ${esc(C.nom)}</b> (né(e) le ${esc(fmtDate(C.naissance))}) :
+        <span class="codep" data-testid="code-genere">${esc(fmtCode(C.code))}</span></div>` : ''}</div>`;
+    V.innerHTML = DEMO + '<p class="row"><button class="btn sec" data-v="operations" data-testid="regler-operations">⚙️ Types d’opération</button></p>' + creation + (PAT.L.length ? `<input id="qp" data-testid="recherche-patients" placeholder="Rechercher (nom, prénom, date de naissance, code, type d’opération, clinique, date)…" value="${esc(PAT.q)}">
+      <div class="count" id="np"></div><div class="patwrap"><table class="pat" data-testid="liste-patients"><thead><tr>${COLS.map(c => `<th${c.tri ? ` class="tri" data-tri="${c.k}"` : ''}>${c.t}</th>`).join('')}<th></th></tr></thead><tbody id="tp"></tbody></table></div>`
+      : '<p class="count">Aucun patient : créez le premier ci-dessus.</p>');
     if (!PAT.L.length) return;
     $('#qp').oninput = e => { PAT.q = e.target.value; lignesPatients(); };
     lignesPatients();
@@ -202,7 +220,7 @@ async function montrer(v, extra) {
   if (v === 'dossier') {
     const d = await api('patient?id=' + encodeURIComponent(extra));
     const sig = Object.entries(d.signatures);
-    V.innerHTML = DEMO + `<p><button class="btn sec" data-v="patients">← Liste des patients</button></p><div class="card" data-testid="dossier"><h3>${esc(d.patient)}</h3><div class="meta">${esc(d.clinique)} · ${esc(d.date || 'date non fixée')} · mis à jour le ${new Date(d.majLe).toLocaleString('fr-FR')}</div>
+    V.innerHTML = DEMO + `<p><button class="btn sec" data-v="patients">← Liste des patients</button></p><div class="card" data-testid="dossier"><h3>${esc(d.patient)}</h3><div class="meta">${d.naissance ? 'né(e) le ' + esc(fmtDate(d.naissance)) + ' · ' : ''}${d.code ? 'code ' + esc(fmtCode(d.code)) + ' · ' : ''}${esc(d.clinique || 'clinique non choisie')} · ${esc(d.date || 'date non fixée')} · ${d.majLe ? 'mis à jour le ' + new Date(d.majLe).toLocaleString('fr-FR') : 'pas encore connecté'}</div>
       ${sig.length ? sig.map(([k, s]) => `<div class="card"><b>${esc(CONS[k] || k)}</b><div class="meta">Signé le ${esc(s.le)}</div>
         ${window.CONSENTEMENTS_MODELES && window.CONSENTEMENTS_MODELES[k] ? `<div class="doc" data-testid="adoc-${k}">${window.consentementDoc(k, { patient: d.patient, clinique: CLINIQUES_NOMS[d.clinique] || d.clinique, date: d.date, sig: s })}</div>` : `<img class="sigimg" src="${s.img}" alt="Signature">`}
         <a class="btn sec" download="${esc((d.patient + '-' + k).replace(/[^w-]+/g, '_'))}.png" href="${s.img}">Télécharger</a></div>`).join('') : '<p class="count">Aucun consentement signé.</p>'}
@@ -235,6 +253,12 @@ document.addEventListener('click', async e => {
   try {
     if (a === 'dossier') return montrer('dossier', b.dataset.id);
     if (a === 'imprimer-dossier') return window.print();
+    if (a === 'patient-creer') {
+      const B = { nom: $('#cp-nom').value.trim(), prenom: $('#cp-prenom').value.trim(), naissance: $('#cp-naissance').value };
+      if (!B.nom || !B.prenom || !B.naissance) return flash('Nom, prénom et date de naissance obligatoires.', false);
+      PAT.cree = await api('patient-creer', B); PAT.q = '';
+      return montrer('patients');
+    }
     if (a === 'op-ajouter') { OPS_EDIT = [...lireOperations(), { nom: '', cliniques: Object.keys(CLINIQUES_NOMS), anesthesie: true }]; dessinerOperations(); return document.querySelector('#ops tbody tr:last-child .op-nom').focus(); }
     if (a === 'op-suppr') { OPS_EDIT = lireOperations(); OPS_EDIT.splice(+b.dataset.i, 1); return dessinerOperations(); }
     if (a === 'op-enregistrer') { OPS_EDIT = await api('operations', { operations: lireOperations() }); dessinerOperations(); return flash('Types d’opération enregistrés : ' + OPS_EDIT.length + '. Les téléphones les reçoivent à leur prochaine ouverture.'); }

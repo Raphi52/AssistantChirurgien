@@ -13,7 +13,9 @@ const srv = spawn(process.execPath, ['server.js'], { cwd: TMP, env, stdio: 'igno
 let ok = 0, ko = 0;
 const t = async (n, f) => { try { await f(); ok++; console.log('OK: ' + n); } catch (e) { ko++; console.log('ÉCHEC: ' + n + ' — ' + e.message); } };
 const call = async (code, p, body) => { const r = await fetch(U + '/api/admin/' + p, { method: body ? 'POST' : 'GET', headers: { 'x-admin-code': code, 'content-type': 'application/json' }, body: body && JSON.stringify(body) }); return { s: r.status, j: await r.json() }; };
-const ask = async q => (await (await fetch(U + '/api/ask', { method: 'POST', headers: { 'x-access-code': 'p', 'content-type': 'application/json' }, body: JSON.stringify({ question: q }) })).json());
+// Code personnel du patient de test : créé par le secrétariat plus bas (décision du 2026-10-14).
+let CODE = '', PID = '';
+const ask = async q => (await (await fetch(U + '/api/ask', { method: 'POST', headers: { 'x-access-code': CODE, 'content-type': 'application/json' }, body: JSON.stringify({ question: q }) })).json());
 
 (async () => {
   for (let i = 0; i < 40; i++) { try { await fetch(U + '/'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
@@ -27,6 +29,32 @@ const ask = async q => (await (await fetch(U + '/api/ask', { method: 'POST', hea
   // (Les espaces autour d'un en-tête sont retirés par HTTP lui-même : « chir » entouré d'espaces reste « chir ».)
   await t('code faux, vide, tronqué ou trop long → refusé (401)', async () => { for (const c of ['faux', '', 'chi', 'chirr', 'secr0']) assert.strictEqual((await call(c, 'moi')).s, 401, JSON.stringify(c)); });
   await t('rôles reconnus', async () => { assert.strictEqual((await call('chir', 'moi')).j.role, 'chirurgien'); assert.strictEqual((await call('secr', 'moi')).j.role, 'secretariat'); });
+
+  // Le secrétariat crée le patient (nom, prénom, date de naissance) : cela génère son code personnel, qui ouvre l'application.
+  await t('le secrétariat crée un patient → code personnel de 8 caractères', async () => {
+    const r = await call('secr', 'patient-creer', { nom: 'Durand', prenom: 'Jean', naissance: '1975-06-01' });
+    assert.strictEqual(r.s, 200); assert.match(r.j.code, /^[A-HJKMNP-Z2-9]{8}$/); assert.strictEqual(r.j.existait, false);
+    CODE = r.j.code; PID = r.j.id;
+  });
+  await t('création refusée sans code admin (401) ou avec une date de naissance invalide (400)', async () => {
+    assert.strictEqual(await sansEntete('patient-creer', { nom: 'A', prenom: 'B', naissance: '1990-01-01' }), 401);
+    assert.strictEqual((await call('secr', 'patient-creer', { nom: 'A', prenom: 'B', naissance: '1990-13-01' })).s, 400);
+    assert.strictEqual((await call('secr', 'patient-creer', { nom: '', prenom: 'B', naissance: '1990-01-01' })).s, 400);
+  });
+  await t('le chirurgien peut aussi créer ; le même patient n’est pas dupliqué', async () => {
+    const r = await call('chir', 'patient-creer', { nom: 'DURAND', prenom: 'jean', naissance: '1975-06-01' });
+    assert.ok(r.j.existait && r.j.code === CODE && r.j.id === PID);
+    assert.strictEqual((await call('secr', 'patients')).j.length, 1);
+  });
+  await t('téléphone : son code (même tapé « abcd-efgh ») rend son prénom et son nom ; ancien code commun et faux code refusés', async () => {
+    const moi = c => fetch(U + '/api/patient', { headers: { 'x-access-code': c } });
+    const tape = CODE.slice(0, 4).toLowerCase() + '-' + CODE.slice(4).toLowerCase();
+    assert.deepStrictEqual(await (await moi(tape)).json(), { id: PID, prenom: 'Jean', nom: 'Durand' });
+    for (const c of ['p', 'x', 'ABCDEFGH']) assert.strictEqual((await moi(c)).status, 401, JSON.stringify(c));
+    assert.strictEqual((await fetch(U + '/api/patient')).status, 401, 'sans code');
+    assert.strictEqual((await fetch(U + '/api/ask', { method: 'POST', headers: { 'x-access-code': 'p', 'content-type': 'application/json' }, body: JSON.stringify({ question: 'agrafes' }) })).status, 401, 'ancien code commun refusé pour les questions');
+    assert.ok((await ask('quand retirer les agrafes')).text, 'questions acceptées avec le code personnel');
+  });
   await t('500 fiches listées', async () => assert.strictEqual((await call('secr', 'fiches')).j.length, 500));
   await t('le secrétariat ne peut pas publier directement', async () => assert.strictEqual((await call('secr', 'publier', { fiche: { question: 'Test test', answer: 'x'.repeat(30) } })).s, 403));
 
@@ -52,25 +80,29 @@ const ask = async q => (await (await fetch(U + '/api/ask', { method: 'POST', hea
   });
   await t('les vraies fiches n’ont pas été touchées', async () => assert.ok(!fs.readFileSync(path.join(SRC, 'data', '02-hospitalisation-sortie.json'), 'utf8').includes('10e jour')));
 
-  const prep = b => fetch(U + '/api/prep', { method: 'POST', headers: { 'x-access-code': 'p', 'content-type': 'application/json' }, body: JSON.stringify(b) });
+  const prep = b => fetch(U + '/api/prep', { method: 'POST', headers: { 'x-access-code': CODE, 'content-type': 'application/json' }, body: JSON.stringify(b) });
   const SIG = 'data:image/png;base64,iVBORw0KGgo=';
-  await t('préparation patient : sans code d’accès → refusée', async () => assert.strictEqual((await fetch(U + '/api/prep', { method: 'POST', body: '{}' })).status, 401));
-  await t('préparation patient : enregistrée puis listée (démo)', async () => {
-    assert.strictEqual((await prep({ id: '0123456789abcdef', patient: 'Jean <b>Test', clinique: 'parc', date: '2027-01-10', progression: { clinique: [2, 2], consent: [1, 4] }, signatures: { chir: { img: SIG, le: 'hier' }, autre: { img: SIG } } })).status, 200);
-    const L = (await call('secr', 'patients')).j; assert.strictEqual(L.length, 1);
-    assert.strictEqual(L[0].patient, 'Jean bTest'); assert.deepStrictEqual(L[0].consentements, ['chir']); assert.ok(!('signatures' in L[0]));
+  await t('préparation patient : sans code, ou avec l’ancien code commun → refusée', async () => {
+    assert.strictEqual((await fetch(U + '/api/prep', { method: 'POST', body: '{}' })).status, 401);
+    assert.strictEqual((await fetch(U + '/api/prep', { method: 'POST', headers: { 'x-access-code': 'p' }, body: '{}' })).status, 401);
   });
-  await t('nom, prénom, type d’opération : gardés quand le téléphone resynchronise sans eux', async () => {
-    assert.strictEqual((await prep({ id: '0123456789abcdef', patient: 'Jean Test', nom: 'Durand', prenom: 'Jean', operation: 'appendicectomie', clinique: 'parc', date: '2027-01-10', signatures: { chir: { img: SIG, le: 'hier' } } })).status, 200);
-    assert.strictEqual((await prep({ id: '0123456789abcdef', patient: 'Jean Test', clinique: 'parc', date: '2027-01-10', signatures: { chir: { img: SIG, le: 'hier' } } })).status, 200);
+  await t('préparation patient : enregistrée dans SON dossier (identifiant envoyé ignoré) puis listée (démo)', async () => {
+    assert.strictEqual((await prep({ id: '0123456789abcdef', clinique: 'parc', date: '2027-01-10', progression: { clinique: [2, 2], consent: [1, 4] }, signatures: { chir: { img: SIG, le: 'hier' }, autre: { img: SIG } } })).status, 200);
+    const L = (await call('secr', 'patients')).j; assert.strictEqual(L.length, 1);
+    assert.strictEqual(L[0].id, PID); assert.strictEqual(L[0].patient, 'Jean Durand'); assert.strictEqual(L[0].naissance, '1975-06-01'); assert.strictEqual(L[0].code, CODE);
+    assert.deepStrictEqual(L[0].consentements, ['chir']); assert.ok(!('signatures' in L[0])); assert.ok(L[0].majLe, 'connecté : date de mise à jour');
+  });
+  await t('identité : le téléphone ne peut changer ni le nom ni le prénom ni la date de naissance ; type d’opération gardé', async () => {
+    assert.strictEqual((await prep({ patient: 'Pirate', nom: 'Pirate', prenom: 'X', naissance: '2000-01-01', operation: 'appendicectomie', clinique: 'parc', date: '2027-01-10', signatures: { chir: { img: SIG, le: 'hier' } } })).status, 200);
+    assert.strictEqual((await prep({ clinique: 'parc', date: '2027-01-10', signatures: { chir: { img: SIG, le: 'hier' } } })).status, 200);
     const p = (await call('secr', 'patients')).j[0];
-    assert.deepStrictEqual([p.nom, p.prenom, p.operation], ['Durand', 'Jean', 'appendicectomie']);
-    await prep({ id: '0123456789abcdef', patient: 'Jean Test', operation: 'Greffe inventée', signatures: { chir: { img: SIG, le: 'hier' } } });
+    assert.deepStrictEqual([p.nom, p.prenom, p.naissance, p.patient, p.operation], ['Durand', 'Jean', '1975-06-01', 'Jean Durand', 'appendicectomie']);
+    await prep({ operation: 'Greffe inventée', signatures: { chir: { img: SIG, le: 'hier' } } });
     assert.strictEqual((await call('secr', 'patients')).j[0].operation, '', 'type hors liste refusé');
   });
   await t('types d’opération : lecture patient avec code, sinon refusée', async () => {
     assert.strictEqual((await fetch(U + '/api/operations')).status, 401);
-    const L = await (await fetch(U + '/api/operations', { headers: { 'x-access-code': 'p' } })).json();
+    const L = await (await fetch(U + '/api/operations', { headers: { 'x-access-code': CODE } })).json();
     assert.strictEqual(L.length, 8);
   });
   await t('types d’opération : le secrétariat lit mais n’enregistre pas', async () => {
@@ -81,13 +113,22 @@ const ask = async q => (await (await fetch(U + '/api/ask', { method: 'POST', hea
     const r = await call('chir', 'operations', { operations: [{ id: 'appendicectomie', nom: 'Appendicectomie', cliniques: ['parc'], anesthesie: false }, { nom: 'Colectomie', cliniques: ['medipole'] }] });
     assert.strictEqual(r.s, 200); assert.deepStrictEqual(r.j.map(o => o.id), ['appendicectomie', 'colectomie']);
     assert.strictEqual((await call('chir', 'operations', { operations: [{ nom: 'Sans clinique', cliniques: [] }] })).s, 400);
-    await prep({ id: '0123456789abcdef', patient: 'Jean Test', operation: 'cure-de-hernie-inguinale', progression: { anesth: [0, 0] }, signatures: { chir: { img: SIG, le: 'hier' } } });
+    await prep({ operation: 'cure-de-hernie-inguinale', progression: { anesth: [0, 0] }, signatures: { chir: { img: SIG, le: 'hier' } } });
     const p = (await call('secr', 'patients')).j[0];
     assert.strictEqual(p.operation, '', 'type supprimé refusé');
     assert.deepStrictEqual(p.progression.anesth, [0, 0], 'étape anesthésie non concernée gardée à 0/0');
   });
-  await t('consentement signé récupérable dans le dossier', async () => assert.strictEqual((await call('chir', 'patient?id=0123456789abcdef')).j.signatures.chir.img, SIG));
-  await t('identifiant forgé refusé (pas de chemin de fichier)', async () => { assert.strictEqual((await prep({ id: '../codes' })).status, 400); assert.strictEqual((await call('chir', 'patient?id=../codes')).s, 404); });
+  await t('consentement signé récupérable dans le dossier', async () => assert.strictEqual((await call('chir', 'patient?id=' + PID)).j.signatures.chir.img, SIG));
+  await t('identifiant forgé sans effet (pas de chemin de fichier)', async () => {
+    assert.strictEqual((await prep({ id: '../codes' })).status, 200, 'identifiant ignoré : la synchro va au dossier du code');
+    assert.ok(!fs.existsSync(path.join(TMP, 'admin-data', 'codes.json.json')) && (await call('secr', 'patients')).j.length === 1);
+    assert.strictEqual((await call('chir', 'patient?id=../codes')).s, 404);
+  });
+  await t('rappel : refusé avec l’ancien code commun, accepté avec le code personnel', async () => {
+    assert.strictEqual((await fetch(U + '/api/rappel', { method: 'POST', headers: { 'x-access-code': 'p' }, body: JSON.stringify({ ref: 'ABC123', telephone: '0601020304' }) })).status, 401);
+    const r = await fetch(U + '/api/rappel', { method: 'POST', headers: { 'x-access-code': CODE }, body: JSON.stringify({ ref: 'ABC123', telephone: '0601020304', patient: 'Pirate' }) });
+    assert.strictEqual(r.status, 200);
+  });
 
   // Attendre l'arrêt réel du serveur de test avant d'effacer sa copie (sinon Windows garde le dossier verrouillé).
   await new Promise(r => { srv.once('exit', r); srv.kill(); });

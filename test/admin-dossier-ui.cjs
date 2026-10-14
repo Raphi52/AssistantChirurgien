@@ -19,26 +19,56 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
 
 (async () => {
   for (let i = 0; i < 40; i++) { try { await fetch(U + '/'); break; } catch { await new Promise(r => setTimeout(r, 250)); } }
-  const r = await fetch(U + '/api/prep', { method: 'POST', headers: { 'x-access-code': 'p', 'content-type': 'application/json' },
-    body: JSON.stringify({ id: 'aaaabbbbccccdddd', patient: 'Marie Durand', clinique: 'parc', date: '2027-01-10', progression: { consent: [2, 4] },
-      signatures: { chir: { img: SIG, le: '05/10/2026 09:15:00' }, anesth: { img: SIG, le: '06/10/2026 10:00:00' } } }) });
+  // Décision du 2026-10-14 : le secrétariat crée le patient (nom, prénom, date de naissance) → code personnel du patient.
+  const creer = async (nom, prenom, naissance) => (await fetch(U + '/api/admin/patient-creer', { method: 'POST', headers: { 'x-admin-code': 'secr', 'content-type': 'application/json' },
+    body: JSON.stringify({ nom, prenom, naissance }) })).json();
+  const prepAvec = (code, body) => fetch(U + '/api/prep', { method: 'POST', headers: { 'x-access-code': code, 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const marie = await creer('Durand', 'Marie', '1980-03-12'), lucas = await creer('Bernard', 'Lucas', '1990-07-01');
+  const r = await prepAvec(marie.code, { clinique: 'parc', date: '2027-01-10', progression: { consent: [2, 4] },
+    signatures: { chir: { img: SIG, le: '05/10/2026 09:15:00' }, anesth: { img: SIG, le: '06/10/2026 10:00:00' } } });
   ok(r.status === 200, 'dossier patient enregistré (démo)');
-  await fetch(U + '/api/prep', { method: 'POST', headers: { 'x-access-code': 'p', 'content-type': 'application/json' },
-    body: JSON.stringify({ id: 'eeeeffff00001111', patient: 'x', nom: 'Bernard', prenom: 'Lucas', operation: 'colectomie', clinique: 'medipole', date: '2027-02-01', progression: { consent: [4, 4] } }) });
+  await prepAvec(lucas.code, { operation: 'colectomie', clinique: 'medipole', date: '2027-02-01', progression: { consent: [4, 4] } });
 
   const b = await chromium.launch({ channel: 'msedge', headless: true });
   const p = await b.newPage({ viewport: { width: 1000, height: 1400 } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  // Demande du 2026-10-05 : nom et prénom viennent de la page de connexion du patient (index.html), envoyés séparément.
+  // Le SECRÉTARIAT crée « Jean Pierre De la Tour » dans l'écran Patients et lit le code généré.
+  const sec = await b.newPage({ viewport: { width: 1200, height: 1000 } });
+  sec.on('pageerror', e => errs.push(e.message));
+  await sec.goto(U + '/admin.html'); await sec.fill('#code', 'secr'); await sec.click('#go');
+  await sec.waitForSelector('#app:not([hidden])'); await sec.click('[data-v=patients]');
+  await sec.waitForSelector('[data-testid=nouveau-patient]');
+  await sec.click('[data-testid=creer-patient]');
+  ok((await sec.innerText('.msg.err')).includes('obligatoires'), 'création sans nom ni date : refusée avec un message');
+  await sec.fill('#cp-nom', 'De la Tour'); await sec.fill('#cp-prenom', 'Jean Pierre'); await sec.fill('#cp-naissance', '1965-11-30');
+  await sec.click('[data-testid=creer-patient]');
+  await sec.waitForSelector('[data-testid=code-genere]');
+  const codeJP = (await sec.innerText('[data-testid=code-genere]')).trim();
+  ok(/^[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}$/.test(codeJP), 'secrétariat : code généré et affiché « ABCD-EFGH » (' + codeJP + ')');
+  ok((await sec.innerText('[data-testid=code-cree]')).includes('Jean Pierre De la Tour') && (await sec.innerText('[data-testid=code-cree]')).includes('30/11/1965'), 'secrétariat : nom et date de naissance rappelés avec le code');
+  ok(await sec.locator('[data-testid=liste-patients] tbody tr', { hasText: 'De la Tour' }).locator('[data-testid=pas-connecte]').count() === 1, 'nouveau patient : « pas encore connecté » dans la liste');
+  await sec.screenshot({ path: path.join(SRC, 'captures', 'admin-patient-cree.png'), fullPage: true });
+  await sec.fill('#cp-nom', 'DE LA TOUR'); await sec.fill('#cp-prenom', 'jean pierre'); await sec.fill('#cp-naissance', '1965-11-30');
+  await sec.click('[data-testid=creer-patient]');
+  // Le message de la création précédente est encore affiché : attendre le NOUVEAU.
+  await sec.waitForSelector('[data-testid=code-cree]:has-text("existe déjà")', { timeout: 5000 }).catch(() => {});
+  ok((await sec.innerText('[data-testid=code-cree]')).includes('existe déjà') && (await sec.innerText('[data-testid=code-genere]')).trim() === codeJP, 'même patient ressaisi : pas de doublon, même code rendu');
+  await sec.close();
+
+  // Le patient ne tape plus que son code (en minuscules ici) : nom et prénom viennent du dossier créé par le secrétariat.
   const tel = await b.newPage({ viewport: { width: 390, height: 844 } });
   tel.on('pageerror', e => errs.push(e.message));
   await tel.goto(U + '/');
-  await tel.fill('#code', 'p'); await tel.fill('#prenom', 'Jean Pierre'); await tel.fill('#nom', 'De la Tour'); await tel.click('#go');
+  ok(await tel.locator('#gate #prenom, #gate #nom').count() === 0, 'connexion patient : plus de champs nom / prénom');
+  await tel.fill('#code', 'p'); await tel.click('#go'); await tel.waitForTimeout(400);
+  ok((await tel.innerText('#go')).includes('Code inconnu') && await tel.isVisible('#gate'), 'ancien code commun refusé à la connexion');
+  await tel.fill('#code', codeJP.toLowerCase()); await tel.click('#go');
   await tel.waitForSelector('#gate', { state: 'hidden' });
+  ok((await tel.evaluate(() => localStorage.getItem('patient'))) === 'Jean Pierre De la Tour', 'connexion : nom du dossier repris sur le téléphone');
   const envoi = tel.waitForRequest(r => r.url().endsWith('/api/prep') && r.method() === 'POST');
   await tel.click('[data-tab=prep]'); await tel.click('[data-path=clinique][data-val=parc]');
   const corps = JSON.parse((await envoi).postData());
-  ok(corps.prenom === 'Jean Pierre' && corps.nom === 'De la Tour', 'connexion : prénom et nom envoyés séparément (' + corps.prenom + ' / ' + corps.nom + ')');
+  ok(!('nom' in corps) && !('prenom' in corps) && !('id' in corps) && !('patient' in corps), 'synchro : ni identifiant ni identité envoyés par le téléphone ' + JSON.stringify(Object.keys(corps)));
   await tel.waitForTimeout(500); await tel.close();
   // Code admin obligatoire (2026-10-06) : l'écran du code s'affiche, un faux code est refusé sans boucle de rechargement.
   let chargements = 0; p.on('load', () => chargements++);
@@ -55,8 +85,10 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   await p.waitForSelector('[data-testid=liste-patients] tbody tr');
   const noms = () => p.$$eval('[data-testid=liste-patients] tbody tr', L => L.map(r => r.cells[0].innerText));
   const entetes = await p.$$eval('[data-testid=liste-patients] th', L => L.map(h => h.innerText.replace(/[▲▼]/g, '').trim()));
-  ok(['Nom', 'Prénom', 'Type d’opération'].every(t => entetes.includes(t)), 'colonnes Nom, Prénom, Type d’opération (' + entetes.join(' | ') + ')');
-  ok((await p.$$eval('[data-testid=liste-patients] tbody tr', L => L.map(r => r.cells[1].innerText))).includes('Marie'), 'nom libre « Marie Durand » découpé en prénom/nom');
+  ok(['Nom', 'Prénom', 'Né(e) le', 'Code', 'Type d’opération'].every(t => entetes.includes(t)), 'colonnes Nom, Prénom, Né(e) le, Code, Type d’opération (' + entetes.join(' | ') + ')');
+  ok((await p.$$eval('[data-testid=liste-patients] tbody tr', L => L.map(r => r.cells[1].innerText))).includes('Marie'), 'prénom saisi à la création affiché');
+  const ligneMarie = await p.locator('[data-testid=liste-patients] tbody tr', { hasText: 'Marie' }).innerText();
+  ok(ligneMarie.includes('12/03/1980') && ligneMarie.includes(marie.code.slice(0, 4) + '-' + marie.code.slice(4)), 'date de naissance et code affichés dans la liste');
   ok(await p.isVisible('text=Colectomie'), 'type d’opération affiché');
   const jp = await p.$$eval('[data-testid=liste-patients] tbody tr', L => L.map(r => r.cells[0].innerText + '|' + r.cells[1].innerText));
   ok(jp.includes('De la Tour|Jean Pierre'), 'nom composé et prénom composé de la connexion affichés tels quels ' + JSON.stringify(jp));
@@ -70,9 +102,15 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   ok((await p.innerText('#np')).includes('1 patient(s) sur 3'), 'compteur filtré');
   await p.fill('[data-testid=recherche-patients]', 'marie');
   ok(JSON.stringify(await noms()) === JSON.stringify(['Durand']), 'recherche par prénom');
+  await p.fill('[data-testid=recherche-patients]', '12/03/1980');
+  ok(JSON.stringify(await noms()) === JSON.stringify(['Durand']), 'recherche par date de naissance');
+  await p.fill('[data-testid=recherche-patients]', lucas.code.toLowerCase());
+  ok(JSON.stringify(await noms()) === JSON.stringify(['Bernard']), 'recherche par code');
   await p.fill('[data-testid=recherche-patients]', '');
   await p.screenshot({ path: path.join(SRC, 'captures', 'admin-patients-liste.png') });
-  await p.click('[data-act=dossier][data-id=aaaabbbbccccdddd]');
+  await p.click(`[data-act=dossier][data-id="${marie.id}"]`);
+  await p.waitForSelector('[data-testid=dossier]');
+  ok((await p.innerText('[data-testid=dossier] .meta')).includes('né(e) le 12/03/1980'), 'dossier : date de naissance dans l’en-tête');
   await p.waitForSelector('[data-testid=dossier]');
 
   ok(await p.locator('div.doc').count() === 2, 'un document par consentement signé (2), aucun pour les non signés');
@@ -122,7 +160,16 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   const tel2 = await b.newPage({ viewport: { width: 390, height: 844 } });
   tel2.on('pageerror', e => errs.push(e.message));
   await tel2.goto(U + '/');
-  await tel2.evaluate(() => { localStorage.clear(); localStorage.setItem('code', 'p'); localStorage.setItem('patient', 'Zoé Test'); });
+  // Téléphone resté sur l'ancien code commun : renvoyé à l'écran du code ; sa préparation locale est gardée (c'est la sienne).
+  await tel2.evaluate(() => { localStorage.clear(); localStorage.setItem('code', 'p'); localStorage.setItem('patient', 'Zoé Test'); localStorage.setItem('prep-v1', JSON.stringify({ clinique: 'medipole' })); });
+  await tel2.reload();
+  await tel2.waitForTimeout(600);
+  ok(await tel2.isVisible('#gate'), 'ancien code commun gardé sur le téléphone : écran du code réaffiché');
+  const zoe = await creer('Test', 'Zoé', '2001-01-01');
+  await tel2.fill('#code', zoe.code); await tel2.click('#go');
+  await tel2.waitForSelector('#gate', { state: 'hidden' });
+  ok(JSON.parse(await tel2.evaluate(() => localStorage.getItem('prep-v1'))).clinique === 'medipole', 'première connexion par code personnel : préparation locale gardée');
+  await tel2.evaluate(() => localStorage.setItem('prep-v1', '{}'));
   await tel2.reload();
   await tel2.click('[data-tab=prep]');
   await tel2.waitForFunction(() => document.querySelectorAll('[data-testid=type-operation] option').length > 1);
@@ -145,6 +192,14 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   ok(!(await tel2.isVisible('[data-testid=op-err]')), 'Colectomie au Médipôle : acceptée');
   await tel2.click('[data-path=clinique][data-val=parc]');
   ok(await tel2.isVisible('[data-testid=op-err]') && (await tel2.textContent('[data-testid=st-clinique]')).includes('2 restants'), 'Colectomie puis Clinique du Parc : message, type non compté');
+  // Un AUTRE patient se connecte sur ce même téléphone : il ne reprend pas la préparation de Zoé.
+  await tel2.evaluate(() => localStorage.setItem('code', 'p'));
+  await tel2.reload(); await tel2.waitForTimeout(600);
+  await tel2.fill('#code', lucas.code);
+  await Promise.all([tel2.waitForEvent('load'), tel2.click('#go')]);
+  await tel2.waitForTimeout(300);
+  const apres = await tel2.evaluate(() => ({ patient: localStorage.getItem('patient'), prep: JSON.parse(localStorage.getItem('prep-v1') || '{}') }));
+  ok(apres.patient === 'Lucas Bernard' && !apres.prep.clinique && !apres.prep.operation, 'autre patient sur le même téléphone : préparation précédente effacée ' + JSON.stringify(apres));
   await tel2.close();
 
   ok(errs.length === 0, 'aucune erreur JavaScript ' + JSON.stringify(errs));

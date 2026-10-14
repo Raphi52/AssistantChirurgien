@@ -1,5 +1,5 @@
 // Test bout en bout de « Préparation de mon opération », format téléphone.
-// Usage : serveur lancé sur le port 8787, puis  node test/prep-ui.cjs [code]
+// Usage : serveur lancé sur le port 8787, patient créé dans l'admin, puis  node test/prep-ui.cjs <code personnel>
 // playwright-core est pris dans BlocAccord (même dossier parent) pour ne rien installer ici.
 'use strict';
 const path = require('path');

@@ -75,10 +75,9 @@
   let S = load();
   function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch { return {}; } }
   function save() { localStorage.setItem(KEY, JSON.stringify(S)); render(); envoyer(); }
-  // Nom et prénom : saisis séparément sur la page de connexion (index.html). Absents pour un téléphone connecté avant
-  // ce changement : non envoyés, le serveur garde alors ce qu'il avait et l'admin découpe le nom complet.
+  // Identité et dossier : désignés par le CODE PERSONNEL créé par le secrétariat (2026-10-14). Le téléphone n'envoie
+  // donc ni identifiant ni nom, le serveur les tient du code.
   // Envoi (démo) : ni le questionnaire d'anesthésie ni les documents cochés, seulement l'avancement et les signatures.
-  function idDossier() { let i = localStorage.getItem('prep-id'); if (!/^[a-f0-9]{16}$/.test(i || '')) { i = [...crypto.getRandomValues(new Uint8Array(8))].map(b => b.toString(16).padStart(2, '0')).join(''); localStorage.setItem('prep-id', i); } return i; }
   // Envoi immédiat, en file (un seul à la fois, le dernier état gagne) : un minuteur différé était perdu
   // quand la page enchaînait l'impression (mesuré dans test/prep-ui.cjs, 2026-10-05).
   let enCours = null, enAttente = false;
@@ -86,7 +85,7 @@
     if (enCours) { enAttente = true; return; }
     const code = localStorage.getItem('code'); if (!code) return;
     enCours = fetch('/api/prep', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-access-code': code },
-      body: JSON.stringify({ id: idDossier(), patient: localStorage.getItem('patient') || '', nom: localStorage.getItem('nom') ?? undefined, prenom: localStorage.getItem('prenom') ?? undefined, clinique: g('clinique', ''), date: g('date', ''), operation: g('operation', ''), progression: progress(), signatures: Object.fromEntries(Object.entries(g('sig', {})).filter(([k]) => consentsActifs().some(c => c[0] === k))) }) })
+      body: JSON.stringify({ clinique: g('clinique', ''), date: g('date', ''), operation: g('operation', ''), progression: progress(), signatures: Object.fromEntries(Object.entries(g('sig', {})).filter(([k]) => consentsActifs().some(c => c[0] === k))) }) })
       .catch(e => console.warn('[prep] envoi au service échoué', e))
       .finally(() => { enCours = null; if (enAttente) { enAttente = false; envoyer(); } });
   }
