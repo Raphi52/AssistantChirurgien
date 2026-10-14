@@ -40,10 +40,18 @@
   #qp { margin:6px 0; } main:has(table.pat) { max-width:1200px; } table.pat td.nw { white-space:nowrap; }
   /* Fenêtre étroite : le tableau défile dans son cadre au lieu d'être coupé à droite (2 colonnes de plus depuis le 2026-10-14). */
   .patwrap { overflow-x:auto; } table.pat th { white-space:nowrap; }
+  /* Boutons « Voir le dossier » / « Supprimer » toujours visibles : colonne collée au bord droit quand le tableau défile. */
+  table.pat th:last-child, table.pat td:last-child { position:sticky; right:0; background:#fff; border-left:1px solid var(--l); }
   .cp label { flex:1; min-width:170px; margin:8px 0 0; } .cp .btn { align-self:flex-end; }
   .codep { font:700 22px/1.3 ui-monospace,Consolas,monospace; letter-spacing:2px; color:var(--c); white-space:nowrap; } .codep-l { font-family:ui-monospace,Consolas,monospace; }
   .bar { background:#eef1f3; border-radius:6px; height:8px; width:90px; display:inline-block; vertical-align:middle; } .bar i { display:block; height:8px; border-radius:6px; background:var(--c); }
   .sigimg { max-width:260px; border:1px solid var(--l); border-radius:8px; background:#fff; display:block; margin:6px 0; }
+  /* Dossier : détail du remplissage (2026-10-14). */
+  h4.sec { margin:16px 0 6px; padding-top:10px; border-top:1px solid var(--l); font-size:15px; }
+  ul.coche { list-style:none; padding:0; margin:0; } ul.coche li { padding:3px 0; font-size:14px; }
+  .fait { color:#0b5f4a; } .manque, tr.manque td { color:#b42318; }
+  table.rep { width:100%; border-collapse:collapse; font-size:14px; } table.rep td { border-bottom:1px solid var(--l); padding:5px 6px; vertical-align:top; } table.rep td:first-child { width:62%; }
+  [data-testid=bilan] ul { margin:4px 0 0; padding-left:20px; }
   @media (max-width:600px) { .diff { grid-template-columns:1fr; } }
 </style>
 </head>
@@ -68,6 +76,7 @@
   <main id="view"></main>
 </div>
 <script src="/consentements.js"></script>
+<script src="/formulaire.js"></script>
 <script>
 // fix-ok: édits multiples = ajout onglets Relecture et Sujets manquants ; défauts mesurés : "\n" inséré par heredoc devenu vrai retour ligne (antislash perdu) ; contrôle écran 6/6 vert.
 const $ = s => document.querySelector(s);
@@ -88,6 +97,67 @@ const ETAPES = { clinique: 'Clinique', preadm: 'Préadmission', anesth: 'Anesth�
 // Noms affichés des cliniques : copie de CLINIQUES dans public/prep.js (le dossier ne garde que la clé).
 const CLINIQUES_NOMS = { parc: 'Clinique du Parc (Lyon 6e)', medipole: 'Médipôle Lyon-Villeurbanne' };
 const CONS = { chir: 'Consentement opération', anesth: 'Consentement anesthésie', confiance: 'Personne de confiance', devis: 'Devis honoraires' };
+
+// Dossier patient : ce qu'il a rempli, étape par étape, et la liste de ce qui MANQUE en tête (demande du 2026-10-14 :
+// le secrétariat vérifie que tout est bien rempli). Questions : public/formulaire.js, réponses envoyées par le téléphone.
+// Rend { bilan, avant (étapes 1 à 3 et état des consentements), apres (veille et jour J) }.
+function remplissage(d, OPS) {
+  const F = window.PREP_FORMULAIRE, R = d.formulaire, manques = [];
+  const P = d.progression || {};
+  const sansAnesth = P.anesth && P.anesth[1] === 0; // réglage du type d'opération : pas de questionnaire d'anesthésie
+  // Compteur de l'étape en cours de dessin : calculé sur les lignes AFFICHÉES, pour que la pastille « 2/3 » dise
+  // la même chose que le détail juste en dessous.
+  let n = [0, 0];
+  const ligne = (c, t, manque) => { n[1]++; if (c) n[0]++; else if (manque) manques.push(manque); return `<li class="${c ? 'fait' : 'manque'}">${c ? '✓' : '✗'} ${esc(t)}</li>`; };
+  const etape = (k, num, t, corps) => { n = [0, 0]; const html = corps(); return `<h4 class="sec" data-testid="rep-${k}">${num}. ${t}${n[1] ? ` <span class="chip">${n[0]}/${n[1]}</span>` : ''}</h4>` + html; };
+  // Téléphone qui n'a pas encore renvoyé ses réponses (connecté avant le 2026-10-14) : seul l'avancement est connu.
+  const nonRecu = k => { const [f, t] = P[k] || [0, 1]; n = [Math.min(f, t), t]; if (f < t) manques.push(`${ETAPES[k]} : ${f}/${t}`); return '<p class="count">Détail des réponses pas encore reçu : il arrivera à la prochaine ouverture de l’application par le patient.</p>'; };
+
+  const op = OPS.find(o => o.id === d.operation);
+  const horsClinique = op && d.clinique && !op.cliniques.includes(d.clinique);
+  let h = etape('clinique', 1, 'Clinique, opération et date', () => '<ul class="coche">'
+    + ligne(!!d.clinique, 'Clinique : ' + (CLINIQUES_NOMS[d.clinique] || d.clinique || 'non choisie'), 'Clinique non choisie')
+    + ligne(!!op && !horsClinique, 'Opération : ' + (op ? op.nom + (horsClinique ? ' — ne se fait pas dans cette clinique' : '') : 'non choisie'), horsClinique ? 'Opération : ne se fait pas dans la clinique choisie' : 'Type d’opération non choisi')
+    + ligne(!!d.date, 'Date de l’opération : ' + (d.date ? fmtDate(d.date) : 'non fixée'), 'Date de l’opération non fixée') + '</ul>');
+
+  h += etape('preadm', 2, 'Préadmission', () => R ? '<ul class="coche">'
+    + F.DOCS.map(([k, l]) => ligne(R.docs[k], l, 'Document non coché : ' + l)).join('')
+    + ligne(R.preadmFaite, 'Préadmission validée en ligne', 'Préadmission en ligne non validée') + '</ul>' : nonRecu('preadm'));
+
+  h += etape('anesth', 3, 'Questionnaire d’anesthésie', () => {
+    if (sansAnesth) return '<p class="count">Non concerné pour cette opération.</p>';
+    if (!R) return nonRecu('anesth');
+    let vides = 0;
+    const t = '<table class="rep">' + F.ANESTH.map(x => {
+      const v = R.anesth[x.id], det = (R.anesthDetail || {})[x.id];
+      n[1]++;
+      if (v === undefined || v === '') { vides++; return `<tr class="manque"><td>${esc(x.q)}</td><td>sans réponse</td></tr>`; }
+      const lib = { oui: 'Oui', non: 'Non', na: 'Non concerné' }[v] || v;
+      const sansDetail = v === 'oui' && x.detail && !det;
+      if (sansDetail) manques.push('Questionnaire : « ' + x.q + ' » — Oui, précision manquante'); else n[0]++;
+      return `<tr${sansDetail ? ' class="manque"' : ''}><td>${esc(x.q)}</td><td>${v === 'oui' ? '<b>Oui</b>' : esc(lib)}${det ? ' — ' + esc(det) : sansDetail ? ' — précision manquante' : ''}</td></tr>`;
+    }).join('') + '</table>';
+    if (vides) manques.push(`Questionnaire d’anesthésie : ${vides} question${vides > 1 ? 's' : ''} sans réponse`);
+    return t;
+  });
+
+  const attendus = Object.keys(CONS).filter(k => k !== 'anesth' || !sansAnesth);
+  h += etape('consent', 4, 'Consentements', () => '<ul class="coche">'
+    + attendus.map(k => ligne(!!d.signatures[k], CONS[k] + (d.signatures[k] ? ' — signé le ' + d.signatures[k].le : ' — non signé'), CONS[k] + ' non signé')).join('') + '</ul>');
+
+  // Veille et jour J : cases que le patient coche la veille ; une seule ligne au bilan, le détail est dans l'étape.
+  const apres = etape('jourj', 5, 'Veille et jour J', () => {
+    if (!R) return nonRecu('jourj');
+    const L = '<ul class="coche">' + F.JOURJ.map(([k, l]) => ligne(R.jourj[k], l)).join('') + '</ul>';
+    if (n[0] < n[1]) manques.push(`Veille et jour J : ${n[1] - n[0]} case${n[1] - n[0] > 1 ? 's' : ''} non cochée${n[1] - n[0] > 1 ? 's' : ''} (à faire la veille)`);
+    return L;
+  });
+
+  const bilan = !d.majLe ? '<div class="msg err" data-testid="bilan">Le patient ne s’est pas encore connecté avec son code : rien n’est rempli.</div>'
+    : !manques.length ? '<div class="msg ok" data-testid="bilan"><b>Tout est rempli ✓</b></div>'
+    : `<div class="msg err" data-testid="bilan"><b>${manques.length} point${manques.length > 1 ? 's' : ''} à compléter</b><ul>${manques.map(m => '<li>' + esc(m) + '</li>').join('')}</ul></div>`;
+  return { bilan, avant: h, apres };
+}
 
 // Vue « Patients » : recherche et tri par colonne, sans rappel serveur (la liste est déjà chargée).
 const PAT = { L: [], q: '', tri: 'date', sens: 1, cree: null };
@@ -114,7 +184,7 @@ function lignesPatients() {
   $('#np').textContent = L.length === PAT.L.length ? L.length + ' patient(s)' : L.length + ' patient(s) sur ' + PAT.L.length;
   document.querySelectorAll('th.tri').forEach(th => { const on = th.dataset.tri === PAT.tri; th.classList.toggle('on', on); th.dataset.sens = on ? (PAT.sens > 0 ? '▲' : '▼') : ''; });
   $('#tp').innerHTML = L.length ? L.map(p => `<tr><td><b>${esc(p.nom || '—')}</b></td><td>${esc(p.prenom || '—')}</td><td class="nw">${esc(fmtDate(p.naissance))}</td><td class="nw codep-l">${esc(fmtCode(p.code))}</td><td>${esc(p.operation || '—')}</td><td class="nw">${esc(p.date || '—')}<div class="meta">${esc(p.clinique)}</div></td><td>${p.majLe ? `<span class="bar"><i style="width:${p.pct}%"></i></span> ${p.pct} %` : '<span class="meta" data-testid="pas-connecte">pas encore connecté</span>'}</td>
-    ${Object.keys(ETAPES).map(k => '<td>' + cel(p.progression[k]) + '</td>').join('')}<td><button class="btn sec" data-act="dossier" data-id="${p.id}">Consentements (${p.consentements.length})</button></td></tr>`).join('')
+    ${Object.keys(ETAPES).map(k => '<td>' + cel(p.progression[k]) + '</td>').join('')}<td class="nw"><button class="btn sec" data-act="dossier" data-id="${p.id}">Voir le dossier</button>${chir() ? ` <button class="btn rouge" data-act="patient-supprimer" data-id="${p.id}" data-nom="${esc((p.prenom + ' ' + p.nom).trim())}">Supprimer</button>` : ''}</td></tr>`).join('')
     : `<tr><td colspan="${COLS.length + 1}" class="count">Aucun patient ne correspond à « ${esc(PAT.q)} ».</td></tr>`;
 }
 // Écran « Types d'opération » (ouvert depuis Patients) : chaque type règle ce que voit le patient dans sa préparation.
@@ -218,12 +288,15 @@ async function montrer(v, extra) {
     dessinerOperations();
   }
   if (v === 'dossier') {
-    const d = await api('patient?id=' + encodeURIComponent(extra));
+    const [d, OPS] = await Promise.all([api('patient?id=' + encodeURIComponent(extra)), api('operations')]);
     const sig = Object.entries(d.signatures);
-    V.innerHTML = DEMO + `<p><button class="btn sec" data-v="patients">← Liste des patients</button></p><div class="card" data-testid="dossier"><h3>${esc(d.patient)}</h3><div class="meta">${d.naissance ? 'né(e) le ' + esc(fmtDate(d.naissance)) + ' · ' : ''}${d.code ? 'code ' + esc(fmtCode(d.code)) + ' · ' : ''}${esc(d.clinique || 'clinique non choisie')} · ${esc(d.date || 'date non fixée')} · ${d.majLe ? 'mis à jour le ' + new Date(d.majLe).toLocaleString('fr-FR') : 'pas encore connecté'}</div>
+    const R = remplissage(d, OPS);
+    V.innerHTML = DEMO + `<p><button class="btn sec" data-v="patients">← Liste des patients</button></p><div class="card" data-testid="dossier"><h3>${esc(d.patient)}</h3><div class="meta">${d.naissance ? 'né(e) le ' + esc(fmtDate(d.naissance)) + ' · ' : ''}${d.code ? 'code ' + esc(fmtCode(d.code)) + ' · ' : ''}${esc(CLINIQUES_NOMS[d.clinique] || d.clinique || 'clinique non choisie')} · ${esc(d.date ? fmtDate(d.date) : 'date non fixée')} · ${d.majLe ? 'mis à jour le ' + new Date(d.majLe).toLocaleString('fr-FR') : 'pas encore connecté'}</div>
+      ${R.bilan}${R.avant}
       ${sig.length ? sig.map(([k, s]) => `<div class="card"><b>${esc(CONS[k] || k)}</b><div class="meta">Signé le ${esc(s.le)}</div>
         ${window.CONSENTEMENTS_MODELES && window.CONSENTEMENTS_MODELES[k] ? `<div class="doc" data-testid="adoc-${k}">${window.consentementDoc(k, { patient: d.patient, clinique: CLINIQUES_NOMS[d.clinique] || d.clinique, date: d.date, sig: s })}</div>` : `<img class="sigimg" src="${s.img}" alt="Signature">`}
         <a class="btn sec" download="${esc((d.patient + '-' + k).replace(/[^w-]+/g, '_'))}.png" href="${s.img}">Télécharger</a></div>`).join('') : '<p class="count">Aucun consentement signé.</p>'}
+      ${R.apres}
       <p class="row"><button class="btn" data-act="imprimer-dossier">🖨️ Imprimer / PDF</button></p></div>`;
   }
   if (v === 'sujets') {
@@ -253,6 +326,13 @@ document.addEventListener('click', async e => {
   try {
     if (a === 'dossier') return montrer('dossier', b.dataset.id);
     if (a === 'imprimer-dossier') return window.print();
+    // Suppression d'un patient : chirurgien seulement (bouton absent pour le secrétariat, refus 403 côté serveur).
+    if (a === 'patient-supprimer') {
+      const nom = b.dataset.nom || 'ce patient';
+      if (!confirm(`Supprimer le dossier de ${nom} ?\n\nIl disparaît de la liste et son code n’ouvre plus l’application. Une copie est gardée dans la corbeille du serveur.`)) return;
+      await api('patient-supprimer', { id: b.dataset.id }); await montrer('patients');
+      return flash('Dossier de ' + nom + ' supprimé.');
+    }
     if (a === 'patient-creer') {
       const B = { nom: $('#cp-nom').value.trim(), prenom: $('#cp-prenom').value.trim(), naissance: $('#cp-naissance').value };
       if (!B.nom || !B.prenom || !B.naissance) return flash('Nom, prénom et date de naissance obligatoires.', false);

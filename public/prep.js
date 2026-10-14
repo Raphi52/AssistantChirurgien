@@ -1,5 +1,7 @@
 // « Préparation de mon opération » — gardée sur le TÉLÉPHONE du patient (localStorage).
-// ⚠️ DÉMO : l'avancement et les signatures sont AUSSI envoyés au serveur (/api/prep) pour la vue « Patients » de l'admin.
+// ⚠️ DÉMO : l'avancement, les signatures et, depuis le 2026-10-14, les RÉPONSES (documents cochés, questionnaire
+// d'anesthésie, veille et jour J) sont AUSSI envoyés au serveur (/api/prep) : le secrétariat vérifie dans le dossier
+// de l'admin que tout est bien rempli (demande utilisateur). Le patient en est prévenu en bas de la page.
 // Dérogation à la règle « aucune donnée patient stockée » — interdit en production sans hébergement HDS (voir lib/dossiers.js).
 // Les préadmissions renvoient vers les portails OFFICIELS des cliniques (sources ci-dessous).
 'use strict';
@@ -32,44 +34,13 @@
     medipole: { nom: 'Médipôle Lyon-Villeurbanne', portail: 'https://www.ramsayservices.fr', portailNom: 'Ramsay Services',
       delai: 'au plus tôt, et au moins 10 jours avant l’hospitalisation', tel: '', adresse: 'Villeurbanne — un bureau de préadmission existe aussi au centre de consultation Léon Blum' },
   };
-  const DOCS = [
-    ['identite', 'Pièce d’identité valide (carte d’identité, passeport, titre de séjour)'],
-    ['vitale', 'Carte Vitale et attestation de droits'],
-    ['mutuelle', 'Carte de mutuelle (et prise en charge si demandée)'],
-    ['ald', 'Justificatif ALD / accident du travail / CSS (si concerné)'],
-    ['ordos', 'Ordonnances et liste de tous vos traitements'],
-  ];
-  const ANESTH = [
-    { id: 'poids', q: 'Votre poids (kg)', t: 'num' },
-    { id: 'taille', q: 'Votre taille (cm)', t: 'num' },
-    { id: 'allergie', q: 'Avez-vous des allergies (médicaments, latex, iode, aliments) ?', t: 'ouinon', detail: 'Lesquelles et quelle réaction ?' },
-    { id: 'traitements', q: 'Prenez-vous des médicaments, y compris sans ordonnance ?', t: 'ouinon', detail: 'Noms et doses' },
-    { id: 'anticoag', q: 'Prenez-vous un anticoagulant ou antiagrégant (Eliquis, Xarelto, Kardégic, Plavix…) ?', t: 'ouinon', detail: 'Lequel ?' },
-    { id: 'operations', q: 'Avez-vous déjà été opéré(e) ?', t: 'ouinon', detail: 'Quelles opérations et quand ?' },
-    { id: 'pbanesth', q: 'Problème lors d’une anesthésie (vous ou votre famille) ?', t: 'ouinon', detail: 'Lequel ?' },
-    { id: 'coeur', q: 'Maladie du cœur, hypertension, pacemaker ?', t: 'ouinon', detail: 'Précisez' },
-    { id: 'poumons', q: 'Asthme, bronchite chronique, essoufflement ?', t: 'ouinon', detail: 'Précisez' },
-    { id: 'apnee', q: 'Apnée du sommeil (avec ou sans appareil) ?', t: 'ouinon' },
-    { id: 'diabete', q: 'Diabète ?', t: 'ouinon', detail: 'Traitement (comprimés, insuline)' },
-    { id: 'reinfoie', q: 'Maladie des reins ou du foie ?', t: 'ouinon', detail: 'Précisez' },
-    { id: 'saignement', q: 'Saignez-vous facilement (bleus, saignements prolongés) ?', t: 'ouinon' },
-    { id: 'tabac', q: 'Fumez-vous ?', t: 'ouinon', detail: 'Combien par jour ?' },
-    { id: 'alcool', q: 'Buvez-vous de l’alcool tous les jours ?', t: 'ouinon' },
-    { id: 'dents', q: 'Prothèse dentaire, dent qui bouge ?', t: 'ouinon' },
-    { id: 'grossesse', q: 'Grossesse possible ou en cours ?', t: 'ouinon_na' },
-  ];
+  // Documents, questionnaire d'anesthésie et liste du jour J : public/formulaire.js (liste partagée avec l'admin et le serveur).
+  const { DOCS, ANESTH, JOURJ } = window.PREP_FORMULAIRE;
   const CONSENTS = [
     ['chir', 'Consentement éclairé pour l’opération', 'Remis par le chirurgien après l’explication de l’intervention.'],
     ['anesth', 'Consentement pour l’anesthésie', 'Remis lors de la consultation d’anesthésie.'],
     ['confiance', 'Désignation de la personne de confiance', 'Formulaire de la clinique, à remplir à l’admission ou avant.'],
     ['devis', 'Devis / information sur les honoraires', 'Si des dépassements d’honoraires sont prévus.'],
-  ];
-  const JOURJ = [
-    ['jeun', 'Je connais mes heures de jeûne (fixées par l’anesthésiste)'],
-    ['douche', 'Douche(s) faite(s) selon la fiche de la clinique'],
-    ['bijoux', 'Bijoux, piercings, vernis et maquillage retirés'],
-    ['docs', 'Documents, ordonnances et examens dans mon sac'],
-    ['retour', 'Retour organisé (accompagnant obligatoire en ambulatoire)'],
   ];
 
   let S = load();
@@ -77,7 +48,7 @@
   function save() { localStorage.setItem(KEY, JSON.stringify(S)); render(); envoyer(); }
   // Identité et dossier : désignés par le CODE PERSONNEL créé par le secrétariat (2026-10-14). Le téléphone n'envoie
   // donc ni identifiant ni nom, le serveur les tient du code.
-  // Envoi (démo) : ni le questionnaire d'anesthésie ni les documents cochés, seulement l'avancement et les signatures.
+  // Envoi (démo) : avancement, signatures et réponses du formulaire (le serveur ne garde que les questions de formulaire.js).
   // Envoi immédiat, en file (un seul à la fois, le dernier état gagne) : un minuteur différé était perdu
   // quand la page enchaînait l'impression (mesuré dans test/prep-ui.cjs, 2026-10-05).
   let enCours = null, enAttente = false;
@@ -85,7 +56,8 @@
     if (enCours) { enAttente = true; return; }
     const code = localStorage.getItem('code'); if (!code) return;
     enCours = fetch('/api/prep', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-access-code': code },
-      body: JSON.stringify({ clinique: g('clinique', ''), date: g('date', ''), operation: g('operation', ''), progression: progress(), signatures: Object.fromEntries(Object.entries(g('sig', {})).filter(([k]) => consentsActifs().some(c => c[0] === k))) }) })
+      body: JSON.stringify({ clinique: g('clinique', ''), date: g('date', ''), operation: g('operation', ''), progression: progress(),
+        formulaire: { docs: g('docs', {}), preadmFaite: !!g('preadmFaite'), anesth: g('anesth', {}), anesthDetail: g('anesthDetail', {}), jourj: g('jourj', {}) }, signatures: Object.fromEntries(Object.entries(g('sig', {})).filter(([k]) => consentsActifs().some(c => c[0] === k))) }) })
       .catch(e => console.warn('[prep] envoi au service échoué', e))
       .finally(() => { enCours = null; if (enAttente) { enAttente = false; envoyer(); } });
   }
@@ -205,7 +177,7 @@
       ${cur ? `<div class="maint" data-testid="maintenant"><div class="kick">À faire maintenant</div>${step(cur, BODY[cur], P[cur][1] - P[cur][0])}</div>` : ''}
       ${autres.map(k => step(k, BODY[k], P[k][1] - P[k][0])).join('')}
       ${faits.length ? `<details class="faits" ${faits.includes(open) ? 'open' : ''}><summary>${faits.length} étape${faits.length > 1 ? 's' : ''} terminée${faits.length > 1 ? 's' : ''} ▾</summary>${faits.map(k => step(k, BODY[k], 0)).join('')}</details>` : ''}
-      <p class="note" data-testid="demo-envoi">⚠️ <b>Démonstration</b> : votre avancement et vos signatures sont transmis au service. Le questionnaire d’anesthésie reste sur ce téléphone.</p>
+      <p class="note" data-testid="demo-envoi">⚠️ <b>Démonstration</b> : vos réponses (questionnaire d’anesthésie compris), votre avancement et vos signatures sont transmis au secrétariat et au chirurgien, qui vérifient que tout est rempli.</p>
       <button type="button" class="lnk" data-act="reset">Effacer mes informations de ce téléphone</button>
       <div id="print-area"></div>`;
   }
@@ -302,4 +274,7 @@
 
   window.Prep = { render };
   render();
+  // Préparation déjà commencée (dont celle remplie avant l'envoi des réponses, 2026-10-14) : renvoyée une fois à
+  // l'ouverture, pour que le dossier du secrétariat soit complet sans attendre la prochaine modification.
+  if (Object.keys(S).some(k => !k.startsWith('_'))) envoyer();
 })();

@@ -101,9 +101,12 @@ const ok = (c, m) => { console.log((c ? 'OK: ' : 'ÉCHEC: ') + m); if (!c) fails
   await p.click('.jl[data-goto=jourj]');
   ok(await p.$eval('[data-step=jourj]', d => d.open), 'clic sur le jalon 5 ouvre son étape');
   await p.screenshot({ path: path.join(out, 'prep-3-suivi.png') });
-  // ⚠️ DÉMO : l'avancement et les signatures partent vers /api/prep ; les réponses d'anesthésie, jamais.
+  // ⚠️ DÉMO : depuis le 2026-10-14, les réponses partent AUSSI vers /api/prep (le secrétariat vérifie le remplissage),
+  // et la page le dit au patient. La clé de stockage du téléphone (prep-v1) ne part jamais telle quelle.
   await p.waitForTimeout(1200);
-  ok(!envois.some(e => /pénicilline|anesthDetail|prep-v1/i.test(e)), 'réponses d’anesthésie jamais envoyées (' + envois.length + ' envoi(s) au total)');
+  ok(envois.some(e => e.includes('/api/prep') && e.includes('"formulaire"') && e.includes('"allergie":"oui"')), 'réponses du questionnaire transmises au service (' + envois.length + ' envoi(s) au total)');
+  ok(!envois.some(e => /prep-v1/.test(e)), 'stockage brut du téléphone jamais envoyé');
+  ok((await p.innerText('[data-testid=demo-envoi]')).includes('questionnaire d’anesthésie compris'), 'le patient est prévenu que ses réponses sont transmises');
   ok(envois.some(e => e.includes('/api/prep') && e.includes('data:image/png')), 'démo : avancement et signatures transmis au service');
 
   // Le chat marche toujours

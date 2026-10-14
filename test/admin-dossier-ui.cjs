@@ -24,7 +24,9 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
     body: JSON.stringify({ nom, prenom, naissance }) })).json();
   const prepAvec = (code, body) => fetch(U + '/api/prep', { method: 'POST', headers: { 'x-access-code': code, 'content-type': 'application/json' }, body: JSON.stringify(body) });
   const marie = await creer('Durand', 'Marie', '1980-03-12'), lucas = await creer('Bernard', 'Lucas', '1990-07-01');
+  // Marie : formulaire rempli À MOITIÉ (allergie « Oui » sans précision, questionnaire incomplet, pas de type d'opération).
   const r = await prepAvec(marie.code, { clinique: 'parc', date: '2027-01-10', progression: { consent: [2, 4] },
+    formulaire: { docs: { identite: true }, anesth: { poids: '65', allergie: 'oui', anticoag: 'oui' }, anesthDetail: { anticoag: 'Kardégic 75' }, jourj: {} },
     signatures: { chir: { img: SIG, le: '05/10/2026 09:15:00' }, anesth: { img: SIG, le: '06/10/2026 10:00:00' } } });
   ok(r.status === 200, 'dossier patient enregistré (démo)');
   await prepAvec(lucas.code, { operation: 'colectomie', clinique: 'medipole', date: '2027-02-01', progression: { consent: [4, 4] } });
@@ -53,6 +55,25 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   // Le message de la création précédente est encore affiché : attendre le NOUVEAU.
   await sec.waitForSelector('[data-testid=code-cree]:has-text("existe déjà")', { timeout: 5000 }).catch(() => {});
   ok((await sec.innerText('[data-testid=code-cree]')).includes('existe déjà') && (await sec.innerText('[data-testid=code-genere]')).trim() === codeJP, 'même patient ressaisi : pas de doublon, même code rendu');
+  ok(await sec.locator('[data-act=patient-supprimer]').count() === 0, 'secrétariat : aucun bouton Supprimer');
+  // Demande du 2026-10-14 : le secrétariat ouvre le dossier et voit ce que le patient a rempli, et ce qui manque.
+  await sec.click(`[data-act=dossier][data-id="${marie.id}"]`);
+  await sec.waitForSelector('[data-testid=bilan]');
+  const bilan = await sec.innerText('[data-testid=bilan]');
+  ok(/\d+ points? à compléter/.test(bilan), 'secrétariat : bilan « N points à compléter » en tête du dossier');
+  ok(bilan.includes('Type d’opération non choisi') && bilan.includes('précision manquante') && bilan.includes('sans réponse') && bilan.includes('Personne de confiance non signé') && bilan.includes('Carte Vitale'),
+    'bilan : opération, précision d’allergie, questions sans réponse, consentement et document manquants listés');
+  ok(!bilan.includes('anticoagulant'), 'bilan : un « Oui » précisé (anticoagulant) n’est pas signalé');
+  ok(bilan.includes('Veille et jour J : 5 cases non cochées') && !bilan.includes('Jour J non coché'), 'bilan : jour J résumé en une ligne');
+  const pastille = async k => (await sec.innerText(`[data-testid=rep-${k}] .chip`)).trim();
+  const P3 = [await pastille('clinique'), await pastille('preadm'), await pastille('anesth'), await pastille('consent'), await pastille('jourj')];
+  ok(JSON.stringify(P3) === JSON.stringify(['2/3', '1/6', '2/17', '2/4', '0/5']), 'pastilles calculées sur le détail affiché ' + JSON.stringify(P3));
+  const anesth = await sec.innerText('table.rep');
+  ok(/allergies[^\n]*\n?[^\n]*Oui — précision manquante/i.test(anesth) && anesth.includes('Kardégic 75') && anesth.includes('65'), 'questionnaire : réponses et précisions affichées');
+  const cons = await sec.innerText('[data-testid=rep-consent] + ul');
+  ok(cons.includes('Consentement opération — signé le 05/10/2026') && cons.includes('Devis honoraires — non signé'), 'consentements : signés avec leur date, non signés signalés');
+  ok(await sec.locator('div.doc').count() === 2, 'secrétariat : documents de consentement signés visibles');
+  await sec.screenshot({ path: path.join(SRC, 'captures', 'admin-dossier-remplissage.png'), fullPage: true });
   await sec.close();
 
   // Le patient ne tape plus que son code (en minuscules ici) : nom et prénom viennent du dossier créé par le secrétariat.
@@ -141,6 +162,39 @@ const SIG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJA
   await p.evaluate(() => { window.print = () => { window.__imprime = true; }; });
   await p.click('[data-act=imprimer-dossier]');
   ok(await p.evaluate(() => window.__imprime === true && [...document.querySelectorAll('div.doc')].every(d => d.offsetHeight > 0)), 'impression : tous les documents visibles');
+
+  // Patient qui a TOUT rempli : le dossier l'annonce en tête.
+  const FORM = require(path.join(SRC, 'public', 'formulaire.js'));
+  const tout = L => Object.fromEntries(L.map(([k]) => [k, true]));
+  const paul = await creer('Complet', 'Paul', '1985-05-05');
+  await prepAvec(paul.code, { clinique: 'parc', date: '2027-03-01', operation: 'appendicectomie',
+    progression: { clinique: [3, 3], preadm: [6, 6], anesth: [17, 17], consent: [4, 4], jourj: [5, 5] },
+    formulaire: { docs: tout(FORM.DOCS), preadmFaite: true, jourj: tout(FORM.JOURJ), anesth: Object.fromEntries(FORM.ANESTH.map(x => [x.id, x.t === 'num' ? '70' : 'non'])) },
+    signatures: Object.fromEntries(['chir', 'anesth', 'confiance', 'devis'].map(k => [k, { img: SIG, le: '07/10/2026 11:00:00' }])) });
+  await p.click('[data-v=patients]');
+  await p.click(`[data-act=dossier][data-id="${paul.id}"]`);
+  await p.waitForSelector('[data-testid=bilan]');
+  ok((await p.innerText('[data-testid=bilan]')).includes('Tout est rempli') && await p.locator('li.manque, tr.manque').count() === 0, 'dossier complet : « Tout est rempli ✓ », aucune ligne en rouge');
+
+  // Suppression par le chirurgien, avec confirmation : « Annuler » ne supprime rien, « OK » supprime ce patient seulement.
+  await p.click('[data-v=patients]');
+  await p.waitForSelector('[data-testid=liste-patients] tbody tr');
+  const lignes = () => p.locator('[data-testid=liste-patients] tbody tr').count();
+  const avant = await lignes();
+  const boutonJP = '[data-act=patient-supprimer][data-nom="Jean Pierre De la Tour"]';
+  ok(await p.locator(boutonJP).count() === 1, 'chirurgien : bouton Supprimer sur la ligne du patient');
+  let question = '';
+  p.once('dialog', d => { question = d.message(); d.dismiss(); });
+  await p.click(boutonJP); await p.waitForTimeout(400);
+  ok(question.includes('Jean Pierre De la Tour') && await lignes() === avant, 'confirmation demandée avec le nom ; « Annuler » ne supprime rien');
+  p.once('dialog', d => d.accept());
+  await p.click(boutonJP);
+  await p.waitForSelector('.msg.ok');
+  ok((await p.innerText('.msg.ok')).includes('supprimé') && await lignes() === avant - 1 && await p.locator(boutonJP).count() === 0, 'après « OK » : le patient a disparu de la liste, les autres restent');
+  const tel3 = await b.newPage({ viewport: { width: 390, height: 844 } });
+  await tel3.goto(U + '/'); await tel3.fill('#code', codeJP); await tel3.click('#go'); await tel3.waitForTimeout(500);
+  ok((await tel3.innerText('#go')).includes('Code inconnu'), 'patient supprimé : son code n’ouvre plus l’application');
+  await tel3.close();
   // Demande du 2026-10-05 : les types d'opération se règlent dans l'admin (cliniques, questionnaire d'anesthésie) et changent la préparation du patient.
   await p.click('[data-v=patients]');
   await p.click('[data-testid=regler-operations]');

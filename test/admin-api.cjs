@@ -124,6 +124,25 @@ const ask = async q => (await (await fetch(U + '/api/ask', { method: 'POST', hea
     assert.ok(!fs.existsSync(path.join(TMP, 'admin-data', 'codes.json.json')) && (await call('secr', 'patients')).j.length === 1);
     assert.strictEqual((await call('chir', 'patient?id=../codes')).s, 404);
   });
+  await t('réponses du formulaire : enregistrées dans le dossier (pour le secrétariat), pas dans la liste', async () => {
+    assert.strictEqual((await prep({ clinique: 'parc', formulaire: { docs: { identite: true }, anesth: { allergie: 'oui', poids: '80' }, anesthDetail: { allergie: 'iode' }, jourj: { jeun: true } } })).status, 200);
+    const d = (await call('secr', 'patient?id=' + PID)).j;
+    assert.deepStrictEqual([d.formulaire.docs.identite, d.formulaire.anesth.allergie, d.formulaire.anesthDetail.allergie, d.formulaire.anesth.poids, d.formulaire.jourj.jeun], [true, 'oui', 'iode', '80', true]);
+    assert.ok(!('formulaire' in (await call('secr', 'patients')).j[0]), 'la liste ne transporte pas les réponses');
+  });
+  await t('suppression d’un patient : refusée au secrétariat (403) et sans code (401)', async () => {
+    const autre = (await call('secr', 'patient-creer', { nom: 'Asupprimer', prenom: 'Test', naissance: '2000-02-02' })).j;
+    assert.strictEqual((await call('secr', 'patient-supprimer', { id: autre.id })).s, 403);
+    assert.strictEqual(await sansEntete('patient-supprimer', { id: autre.id }), 401);
+    assert.strictEqual((await call('secr', 'patients')).j.length, 2, 'rien de supprimé');
+    const r = await call('chir', 'patient-supprimer', { id: autre.id });
+    assert.strictEqual(r.s, 200); assert.strictEqual(r.j.patient, 'Test Asupprimer');
+    assert.deepStrictEqual((await call('secr', 'patients')).j.map(p => p.id), [PID], 'seul le patient visé a disparu');
+    assert.strictEqual((await fetch(U + '/api/patient', { headers: { 'x-access-code': autre.code } })).status, 401, 'son code n’ouvre plus l’application');
+    assert.strictEqual((await call('chir', 'patient-supprimer', { id: autre.id })).s, 400, 'déjà supprimé');
+    assert.strictEqual((await call('chir', 'patient-supprimer', { id: '../codes' })).s, 400, 'identifiant forgé refusé');
+    assert.strictEqual(fs.readdirSync(path.join(TMP, 'admin-data', 'dossiers-demo', 'corbeille')).length, 1, 'copie en corbeille');
+  });
   await t('rappel : refusé avec l’ancien code commun, accepté avec le code personnel', async () => {
     assert.strictEqual((await fetch(U + '/api/rappel', { method: 'POST', headers: { 'x-access-code': 'p' }, body: JSON.stringify({ ref: 'ABC123', telephone: '0601020304' }) })).status, 401);
     const r = await fetch(U + '/api/rappel', { method: 'POST', headers: { 'x-access-code': CODE }, body: JSON.stringify({ ref: 'ABC123', telephone: '0601020304', patient: 'Pirate' }) });
